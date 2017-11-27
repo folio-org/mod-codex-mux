@@ -1,0 +1,22 @@
+{
+  "id": "${artifactId}-${version}",
+  "name": "Codex Multiplexer",
+  "requires": [],
+  "provides": [
+    {
+      "id": "codex",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/codex-instances"
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/codex-instances/{id}"
+        }
+      ]
+    }
+  ],
+  "permissionSets": []
+}
