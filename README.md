@@ -8,3 +8,16 @@ Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 ## Introduction
 
 Codex Multiplexer backend module
+
+## Additional information
+
+### Other documentation
+
+Other [modules](http://dev.folio.org/source-code/#server-side) are described,
+with further FOLIO Developer documentation at [dev.folio.org](http://dev.folio.org/)
+
+### Issue tracker
+
+See project [MODCXMUX](https://issues.folio.org/browse/MODCXMUX)
+at the [FOLIO issue tracker](http://dev.folio.org/community/guide-issues).
+
