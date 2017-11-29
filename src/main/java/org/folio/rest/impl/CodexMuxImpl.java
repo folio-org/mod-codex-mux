@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
+import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.core.Response;
 import org.folio.codex.Mock;
@@ -13,7 +14,7 @@ import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 public class CodexMuxImpl implements CodexInstancesResource {
 
   private static CodexInstancesResource mux;
-  private static CodexInstancesResource mock;
+  private static Map<String, CodexInstancesResource> mock = new HashMap<>();
 
   private CodexInstancesResource get(Context vertxContext) {
     JsonObject conf = vertxContext.config();
@@ -23,13 +24,11 @@ public class CodexMuxImpl implements CodexInstancesResource {
         mux = new Multiplexer();
       }
       return mux;
-    } else if (mode.equals("mock")) {
-      if (mock == null) {
-        mock = new Mock();
-      }
-      return mock;
     } else {
-      return null;
+      if (!mock.containsKey(mode)) {
+        mock.put(mode, new Mock(mode));
+      }
+      return mock.get(mode);
     }
   }
 

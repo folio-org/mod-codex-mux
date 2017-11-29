@@ -23,55 +23,73 @@ public class Mock implements CodexInstancesResource {
 
   List<Instance> mInstances = new LinkedList<>();
 
-  public Mock() {
-    {
-      Instance e = new Instance();
-      e.setTitle("How to program a computer");
-      e.setPublisher("Penguin");
-      Set<Contributor> cs = new LinkedHashSet<>();
-      Contributor c = new Contributor();
-      c.setName("Jack Collins");
-      c.setType("Personal name");
-      cs.add(c);
-      e.setContributor(cs);
-      e.setDate("1991");
-      e.setId("11224466");
-      mInstances.add(e);
-    }
-    {
-      Instance e = new Instance();
-      e.setTitle("How to program a computer");
-      e.setPublisher("Penguin");
-      Set<Contributor> cs = new LinkedHashSet<>();
-      Contributor c = new Contributor();
-      c.setName("Jack Collins");
-      c.setType("Personal name");
-      cs.add(c);
-      e.setContributor(cs);
-      e.setDate("1991");
-      e.setId("11224467");
-      mInstances.add(e);
-    }
+  public Mock(String id) {
+    logger.info("Mock " + id + " starting");
+    if (id.equals("mock1")) {
+      {
+        Instance e = new Instance();
+        e.setTitle("How to program a computer");
+        e.setPublisher("Penguin");
+        Set<Contributor> cs = new LinkedHashSet<>();
+        Contributor c = new Contributor();
+        c.setName("Jack Collins");
+        c.setType("Personal name");
+        cs.add(c);
+        e.setContributor(cs);
+        e.setDate("1991");
+        e.setId("11224466");
+        mInstances.add(e);
+      }
+      {
+        Instance e = new Instance();
+        e.setTitle("How to program a computer");
+        e.setPublisher("Penguin");
+        Set<Contributor> cs = new LinkedHashSet<>();
+        Contributor c = new Contributor();
+        c.setName("Jack Collins");
+        c.setType("Personal name");
+        cs.add(c);
+        e.setContributor(cs);
+        e.setDate("1991");
+        e.setId("11224467");
+        mInstances.add(e);
+      }
 
-    {
-      Instance e = new Instance();
-      e.setTitle("Computer processing of dynamic images from an Anger scintillation camera");
-      e.setPublisher("Society of Nuclear Medicine");
-      Contributor c = new Contributor();
-      Set<Contributor> cs = new LinkedHashSet<>();
-      c.setName("Larson, Kenneth B.");
-      c.setType("Personal name");
-      cs.add(c);
+      {
+        Instance e = new Instance();
+        e.setTitle("Computer processing of dynamic images from an Anger scintillation camera");
+        e.setPublisher("Society of Nuclear Medicine");
+        Contributor c = new Contributor();
+        Set<Contributor> cs = new LinkedHashSet<>();
+        c.setName("Larson, Kenneth B.");
+        c.setType("Personal name");
+        cs.add(c);
 
-      c = new Contributor();
-      c.setName("Cox, Jerome R.");
-      c.setType("Personal name");
-      cs.add(c);
+        c = new Contributor();
+        c.setName("Cox, Jerome R.");
+        c.setType("Personal name");
+        cs.add(c);
 
-      e.setContributor(cs);
-      e.setDate("1971");
-      e.setId("73090924");
-      mInstances.add(e);
+        e.setContributor(cs);
+        e.setDate("1971");
+        e.setId("73090924");
+        mInstances.add(e);
+      }
+    } else if (id.equals("mock2")) {
+      for (int i = 0; i < 20; i++) {
+        Instance e = new Instance();
+        e.setTitle("How to program a computer volume " + Integer.toBinaryString(i));
+        e.setPublisher("Penguin");
+        Set<Contributor> cs = new LinkedHashSet<>();
+        Contributor c = new Contributor();
+        c.setName("Jack Collins");
+        c.setType("Personal name");
+        cs.add(c);
+        e.setContributor(cs);
+        e.setDate("1991");
+        e.setId(Integer.toString(10000000 + i));
+        mInstances.add(e);
+      }
     }
   }
 
