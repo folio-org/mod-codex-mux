@@ -83,9 +83,7 @@ public class Multiplexer implements CodexInstancesResource {
     logger.info("getByQuery url=" + url);
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer b = Buffer.buffer();
-      res.handler(r -> {
-        b.appendBuffer(r);
-      });
+      res.handler(b::appendBuffer);
       res.endHandler(r -> {
         InstanceCollection col = null;
         if (res.statusCode() == 200) {
@@ -176,9 +174,7 @@ public class Multiplexer implements CodexInstancesResource {
     logger.info("getById url=" + url);
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer b = Buffer.buffer();
-      res.handler(r -> {
-        b.appendBuffer(r);
-      });
+      res.handler(b::appendBuffer);
       res.endHandler(r -> {
         if (res.statusCode() == 200) {
           logger.info("getById returned status 200");
