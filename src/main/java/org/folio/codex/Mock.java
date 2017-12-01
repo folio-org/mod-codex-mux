@@ -19,7 +19,7 @@ import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 
 public class Mock implements CodexInstancesResource {
 
-  Logger logger = LoggerFactory.getLogger("codex.mux");
+  Logger logger = LoggerFactory.getLogger("codex.mock");
 
   List<Instance> mInstances = new LinkedList<>();
 
@@ -78,7 +78,7 @@ public class Mock implements CodexInstancesResource {
     } else if (id.equals("mock2")) {
       for (int i = 0; i < 20; i++) {
         Instance e = new Instance();
-        e.setTitle("How to program a computer volume " + Integer.toBinaryString(i));
+        e.setTitle("How to program a computer volume " + Integer.toString(i));
         e.setPublisher("Penguin");
         Set<Contributor> cs = new LinkedHashSet<>();
         Contributor c = new Contributor();
@@ -104,6 +104,7 @@ public class Mock implements CodexInstancesResource {
 
   @Override
   public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+    logger.info("codex.mock getCodexInstancesById " + id);
     for (Instance e : mInstances) {
       if (e.getId() != null && e.getId().equals(id)) {
         asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesByIdResponse.withJsonOK(e)));

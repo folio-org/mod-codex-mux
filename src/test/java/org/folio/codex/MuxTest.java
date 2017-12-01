@@ -5,6 +5,8 @@ import com.jayway.restassured.response.Header;
 import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -25,48 +27,29 @@ import org.junit.Test;
 
 @RunWith(VertxUnitRunner.class)
 public class MuxTest {
+  static {
+    System.setProperty(LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4jLogDelegateFactory");
+  }
 
-  private final Header tenantHeader = new Header("X-Okapi-Tenant", "testlib");
   private final int portOkapi = 9030;
   private final int portMux = 9031;
-  private final int portMock1 = 9032;
-  private final int portMock2 = 9033;
   private final Logger logger = LoggerFactory.getLogger("codex.mux");
   private Set<String> enabledModules = new HashSet<>();
+
+  private final Header tenantHeader = new Header("X-Okapi-Tenant", "testlib");
+  private final Header urlHeader = new Header("X-Okapi-Url", "http://localhost:" + portOkapi);
 
   Vertx vertx;
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-    setupMock1(context, context.async());
-  }
-
-  private void setupMock1(TestContext context, Async async) {
-    JsonObject conf = new JsonObject();
-    conf.put("http.port", portMock1);
-    conf.put("codex.mode", "mock1");
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(conf);
-    vertx.deployVerticle(RestVerticle.class.getName(), opt,
-      r -> setupMock2(context, async));
-  }
-
-  private void setupMock2(TestContext context, Async async) {
-    JsonObject conf = new JsonObject();
-    conf.put("http.port", portMock2);
-    conf.put("codex.mode", "mock2");
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(conf);
-    vertx.deployVerticle(RestVerticle.class.getName(), opt,
-      r -> setupMux(context, async));
+    setupMux(context, context.async());
   }
 
   private void setupMux(TestContext context, Async async) {
     JsonObject conf = new JsonObject();
     conf.put("http.port", portMux);
-    conf.put("codex.mode", "mux");
-    // conf.put("codex.mux.tenant", new JsonObject().put("tenant", "test-lib").put("urls", new JsonArray(
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
     vertx.deployVerticle(RestVerticle.class.getName(), opt,
@@ -79,6 +62,7 @@ public class MuxTest {
   private void setupMiniOkapi(TestContext context, Async async) {
     Router router = Router.router(vertx);
     router.get("/_/proxy/tenants/:tenant/interfaces/:interfaceId").handler(this::handlerMiniOkapi);
+    router.getWithRegex("/codex-instances.*").handler(this::handlerProxy);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
@@ -94,6 +78,31 @@ public class MuxTest {
       );
   }
 
+  private void handlerProxy(RoutingContext ctx) {
+    HttpClient client = vertx.createHttpClient();
+    String url = "http://localhost:" + portMux + ctx.request().path();
+    if (ctx.request().query() != null) {
+      url += "?" + ctx.request().query();
+    }
+    logger.info("RELAY " + ctx.request().absoluteURI() + " -> " + url);
+    HttpClientRequest req = client.getAbs(url, res -> {
+      ctx.response().setStatusCode(res.statusCode());
+      ctx.response().headers().setAll(res.headers());
+      ctx.response().setChunked(true);
+      res.handler(r -> {
+        ctx.response().write(r);
+      });
+      res.endHandler(r -> ctx.response().end());
+    });
+    req.exceptionHandler(r -> {
+      ctx.response().setStatusCode(500);
+      ctx.response().end(r.getMessage());
+    });
+    req.headers().setAll(ctx.request().headers());
+    req.setChunked(true);
+    req.end();
+  }
+
   private void handlerMiniOkapi(RoutingContext ctx) {
     final String tenant = ctx.request().getParam("tenant");
     final String interfaceId = ctx.request().getParam("interfaceId");
@@ -106,16 +115,9 @@ public class MuxTest {
       } else {
         org.folio.okapi.common.HttpResponse.responseJson(ctx, 200);
         JsonArray a = new JsonArray();
-        if (enabledModules.contains("mock1")) {
+        for (String m : enabledModules) {
           JsonObject j = new JsonObject();
-          j.put("id", "mock1");
-          j.put("url", "http://localhost:" + Integer.toString(portMock1));
-          a.add(j);
-        }
-        if (enabledModules.contains("mock2")) {
-          JsonObject j = new JsonObject();
-          j.put("id", "mock2");
-          j.put("url", "http://localhost:" + Integer.toString(portMock2));
+          j.put("id", m);
           a.add(j);
         }
         ctx.response().end(a.encodePrettily());
@@ -138,8 +140,9 @@ public class MuxTest {
     JsonObject j;
 
     logger.info("testMock");
-    RestAssured.port = portMock1;
+    RestAssured.port = portMux;
     r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
       .header(tenantHeader)
       .get("/codex-instances")
       .then()
@@ -150,6 +153,7 @@ public class MuxTest {
     context.assertEquals(3, j.getInteger("totalRecords"));
 
     RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
       .header(tenantHeader)
       .get("/codex-instances2")
       .then()
@@ -157,6 +161,7 @@ public class MuxTest {
       .statusCode(400); // would have expected 404 for RMB
 
     r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
       .header(tenantHeader)
       .get("/codex-instances/11224467")
       .then()
@@ -168,14 +173,15 @@ public class MuxTest {
     context.assertTrue("11224467".equals(j.getString("id")), b);
 
     RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
       .header(tenantHeader)
       .get("/codex-instances/1234")
       .then()
       .log().ifValidationFails()
       .statusCode(404);
 
-    RestAssured.port = portMock2;
     r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
       .get("/codex-instances")
       .then()
@@ -186,6 +192,7 @@ public class MuxTest {
     context.assertEquals(20, j.getInteger("totalRecords"));
 
     RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
       .get("/codex-instances2")
       .then()
@@ -193,6 +200,7 @@ public class MuxTest {
       .statusCode(400); // would have expected 404 for RMB
 
     r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
       .get("/codex-instances/10000000")
       .then()
@@ -204,6 +212,7 @@ public class MuxTest {
     context.assertTrue("10000000".equals(j.getString("id")), b);
 
     RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
       .get("/codex-instances/1234")
       .then()
@@ -256,6 +265,7 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(404);
+
   }
 
   @Test
@@ -267,8 +277,22 @@ public class MuxTest {
     logger.info("testMutex");
     RestAssured.port = portMux;
 
+    RestAssured.given()
+      .get("/codex-instances")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400).extract().response();
+
+    RestAssured.given()
+      .header(tenantHeader)
+      .get("/codex-instances")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(401).extract().response();
+
     r = RestAssured.given()
       .header(tenantHeader)
+      .header(urlHeader)
       .get("/codex-instances")
       .then()
       .log().ifValidationFails()
@@ -283,7 +307,44 @@ public class MuxTest {
       .get("/codex-instances/11224467")
       .then()
       .log().ifValidationFails()
+      .statusCode(401);
+
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances/11224467")
+      .then()
+      .log().ifValidationFails()
       .statusCode(404);
+
+    enabledModules.clear();
+    enabledModules.add("mock1");
+
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances/11224467")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200);
+
+    enabledModules.add("mock2");
+
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances/11224467")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200);
+
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances/10000010")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200);
   }
 
 }
