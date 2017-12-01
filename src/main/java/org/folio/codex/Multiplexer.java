@@ -75,10 +75,11 @@ public class Multiplexer implements CodexInstancesResource {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(r -> {
-        InstanceCollection col = null;
         client.close();
         if (res.statusCode() == 200) {
           fut.handle(Future.succeededFuture(b));
+        } else if (res.statusCode() == 404) {
+          fut.handle(Future.succeededFuture(Buffer.buffer()));
         } else {
           fut.handle(Future.failedFuture("Get url " + url + " returned " + res.statusCode()));
         }
@@ -181,37 +182,25 @@ public class Multiplexer implements CodexInstancesResource {
     HttpClient client = vertxContext.owner().createHttpClient();
     final String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances/" + id;
     logger.info("getById url=" + url);
-    HttpClientRequest req = client.getAbs(url, res -> {
-      Buffer b = Buffer.buffer();
-      res.handler(b::appendBuffer);
-      res.endHandler(r -> {
-        if (res.statusCode() == 200) {
-          logger.info("getById returned status 200");
-          logger.info("Response: " + b.toString());
-          try {
-            Instance instance = Json.decodeValue(b.toString(), Instance.class);
-            instances.add(instance);
-          } catch (Exception e) {
-            client.close();
-            fut.handle(Future.failedFuture(e));
-            return;
+    getUrl(module, url, client, okapiHeaders, res -> {
+      if (res.failed()) {
+        logger.info("getById. getUrl failed " + res.cause());
+        fut.handle(Future.failedFuture(res.cause()));
+      } else {
+        Instance instance = null;
+        try {
+          if (res.result().length() > 0) {
+            instance = Json.decodeValue(res.result().toString(), Instance.class);
           }
+        } catch (Exception e) {
+          logger.info("FAILED FUTURE");
+          fut.handle(Future.failedFuture(e));
+          return;
         }
-        client.close();
+        instances.add(instance);
         fut.handle(Future.succeededFuture());
-      });
+      }
     });
-    req.setChunked(true);
-    for (Map.Entry<String, String> e : okapiHeaders.entrySet()) {
-      req.putHeader(e.getKey(), e.getValue());
-    }
-    req.putHeader(XOkapiHeaders.MODULE_ID, module);
-    req.putHeader("Accept", "application/json");
-    req.exceptionHandler(r -> {
-      client.close();
-      fut.handle(Future.failedFuture(r.getMessage()));
-    });
-    req.end();
   }
 
   @Override
