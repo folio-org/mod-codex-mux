@@ -70,36 +70,18 @@ public class Multiplexer implements CodexInstancesResource {
     req.end();
   }
 
-  private void getByQuery(String module, Context vertxContext, String query,
-    int offset, int limit, LHeaders okapiHeaders, Map<String, InstanceCollection> cols,
-    Handler<AsyncResult<Void>> fut) {
-
-    HttpClient client = vertxContext.owner().createHttpClient();
-    String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances?"
-      + "offset=" + offset + "&limit=" + limit;
-    if (query != null) {
-      url += "&query=" + query;
-    }
-    logger.info("getByQuery url=" + url);
+  private void getUrl(String module, String url, HttpClient client, LHeaders okapiHeaders, Handler<AsyncResult<Buffer>> fut) {
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(r -> {
         InstanceCollection col = null;
-        if (res.statusCode() == 200) {
-          logger.info("getByQuery returned status 200");
-          logger.info("Response: " + b.toString());
-          try {
-            col = Json.decodeValue(b.toString(), InstanceCollection.class);
-            cols.put(module, col);
-          } catch (Exception e) {
-            client.close();
-            fut.handle(Future.failedFuture(e));
-            return;
-          }
-        }
         client.close();
-        fut.handle(Future.succeededFuture());
+        if (res.statusCode() == 200) {
+          fut.handle(Future.succeededFuture(b));
+        } else {
+          fut.handle(Future.failedFuture("Get url " + url + " returned " + res.statusCode()));
+        }
       });
     });
     req.setChunked(true);
@@ -113,7 +95,34 @@ public class Multiplexer implements CodexInstancesResource {
       fut.handle(Future.failedFuture(r.getMessage()));
     });
     req.end();
+  }
 
+  private void getByQuery(String module, Context vertxContext, String query,
+    int offset, int limit, LHeaders okapiHeaders, Map<String, InstanceCollection> cols,
+    Handler<AsyncResult<Void>> fut) {
+
+    HttpClient client = vertxContext.owner().createHttpClient();
+    String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances?"
+      + "offset=" + offset + "&limit=" + limit;
+    if (query != null) {
+      url += "&query=" + query;
+    }
+    logger.info("getByQuery url=" + url);
+    getUrl(module, url, client, okapiHeaders, res -> {
+      if (res.failed()) {
+        fut.handle(Future.failedFuture(res.cause()));
+      } else {
+        InstanceCollection col = null;
+        try {
+          col = Json.decodeValue(res.result().toString(), InstanceCollection.class);
+          cols.put(module, col);
+        } catch (Exception e) {
+          fut.handle(Future.failedFuture(e));
+          return;
+        }
+        fut.handle(Future.succeededFuture());
+      }
+    });
   }
 
   @Override
