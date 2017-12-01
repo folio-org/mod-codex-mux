@@ -26,7 +26,9 @@ import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 public class Multiplexer implements CodexInstancesResource {
   private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
-  void getModules(LHeaders okapiHeaders, Context vertxContext, Handler<AsyncResult<List<String>>> fut) {
+  void getModules(LHeaders okapiHeaders, Context vertxContext,
+    Handler<AsyncResult<List<String>>> fut) {
+
     logger.info("codex.mux getModules");
     final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
     if (okapiUrl == null) {
@@ -83,7 +85,6 @@ public class Multiplexer implements CodexInstancesResource {
       Buffer b = Buffer.buffer();
       res.handler(r -> {
         b.appendBuffer(r);
-        logger.info("getByQuery buf=" + r.toString());
       });
       res.endHandler(r -> {
         InstanceCollection col = null;
@@ -119,16 +120,15 @@ public class Multiplexer implements CodexInstancesResource {
 
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
-    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
     Context vertxContext) throws Exception {
 
     LHeaders h = new LHeaders(okapiHeaders);
     getModules(h, vertxContext, res -> {
       if (res.failed()) {
-        asyncResultHandler.handle(Future.succeededFuture(
+        handler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
-        List<Instance> instances = new LinkedList<>();
         List<Future> futures = new LinkedList<>();
         Map<String, InstanceCollection> cols = new HashMap<>();
         for (String m : res.result()) {
@@ -139,28 +139,29 @@ public class Multiplexer implements CodexInstancesResource {
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
           if (res2.failed()) {
-            asyncResultHandler.handle(Future.succeededFuture(
+            handler.handle(Future.succeededFuture(
               CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
             );
           } else {
             int totalRecords = 0;
-            for (String m : cols.keySet()) {
-              InstanceCollection col = cols.get(m);
+            for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
+              InstanceCollection col = key.getValue();
               totalRecords += col.getTotalRecords();
             }
-            for (String m : cols.keySet()) {
-              InstanceCollection col = cols.get(m);
+            for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
+              InstanceCollection col = key.getValue();
               // pick first non-empty now.
               if (!col.getInstances().isEmpty()) {
                 col.setTotalRecords(totalRecords);
-                asyncResultHandler.handle(Future.succeededFuture(
+                handler.handle(Future.succeededFuture(
                   CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(col)));
                 return;
               }
             }
             InstanceCollection coll = new InstanceCollection();
             coll.setTotalRecords(totalRecords);
-            asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+            handler.handle(Future.succeededFuture(
+              CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
           }
         });
       }
@@ -177,7 +178,6 @@ public class Multiplexer implements CodexInstancesResource {
       Buffer b = Buffer.buffer();
       res.handler(r -> {
         b.appendBuffer(r);
-        logger.info("getById buf=" + r.toString());
       });
       res.endHandler(r -> {
         if (res.statusCode() == 200) {
@@ -210,12 +210,15 @@ public class Multiplexer implements CodexInstancesResource {
   }
 
   @Override
-  public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getCodexInstancesById(String id, String lang,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
+    Context vertxContext) throws Exception {
+
     logger.info("Codex.mux getCodexInstancesById");
     LHeaders h = new LHeaders(okapiHeaders);
     getModules(h, vertxContext, res1 -> {
       if (res1.failed()) {
-        asyncResultHandler.handle(Future.succeededFuture(
+        handler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainUnauthorized(res1.cause().getMessage())));
       } else {
         List<Instance> instances = new LinkedList<>();
@@ -228,15 +231,15 @@ public class Multiplexer implements CodexInstancesResource {
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
           if (res2.failed()) {
-            asyncResultHandler.handle(Future.succeededFuture(
+            handler.handle(Future.succeededFuture(
               CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainInternalServerError(res2.cause().getMessage()))
           );
           } else {
             if (instances.isEmpty()) {
-              asyncResultHandler.handle(Future.succeededFuture(
+              handler.handle(Future.succeededFuture(
                 CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainNotFound(id)));
             } else {
-              asyncResultHandler.handle(Future.succeededFuture(
+              handler.handle(Future.succeededFuture(
                 CodexInstancesResource.GetCodexInstancesByIdResponse.withJsonOK(instances.get(0))));
             }
           }

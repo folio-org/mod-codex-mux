@@ -38,6 +38,7 @@ public class MuxTest {
 
   private final Header tenantHeader = new Header("X-Okapi-Tenant", "testlib");
   private final Header urlHeader = new Header("X-Okapi-Url", "http://localhost:" + portOkapi);
+  private final Header urlHeaderBad = new Header("X-Okapi-Url", "http://foo.bar");
 
   Vertx vertx;
 
@@ -387,6 +388,15 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(23, j.getInteger("totalRecords"));
+
+    // bad X-Okapi-Url
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeaderBad)
+      .get("/codex-instances?query=foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(401).extract().response();
 
   }
 

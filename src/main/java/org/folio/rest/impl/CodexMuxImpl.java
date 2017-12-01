@@ -37,13 +37,21 @@ public class CodexMuxImpl implements CodexInstancesResource {
   }
 
   @Override
-  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-    get(okapiHeaders).getCodexInstances(query, offset, limit, lang, okapiHeaders, asyncResultHandler, vertxContext);
+  public void getCodexInstances(String query, int offset, int limit, String lang,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+    Context vertxContext) throws Exception {
+
+    get(okapiHeaders).getCodexInstances(query, offset, limit, lang,
+      okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   @Override
-  public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-    get(okapiHeaders).getCodexInstancesById(id, lang, okapiHeaders, asyncResultHandler, vertxContext);
+  public void getCodexInstancesById(String id, String lang,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+    Context vertxContext) throws Exception {
+
+    get(okapiHeaders).getCodexInstancesById(id, lang,
+      okapiHeaders, asyncResultHandler, vertxContext);
   }
 
 }
