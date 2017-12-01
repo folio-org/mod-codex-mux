@@ -139,6 +139,7 @@ public class MuxTest {
     Response r;
     String b;
     JsonObject j;
+    JsonArray a;
 
     logger.info("testMock");
     RestAssured.port = portCodex;
@@ -180,6 +181,42 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(404);
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
+      .header(tenantHeader)
+      .get("/codex-instances?limit=1&offset=1")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(a.size(), 1);
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
+      .header(tenantHeader)
+      .get("/codex-instances?offset=1")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(a.size(), 2);
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
+      .get("/codex-instances?limit=3&offset=5")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(a.size(), 3);
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")

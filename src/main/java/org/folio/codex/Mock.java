@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -98,7 +99,15 @@ public class Mock implements CodexInstancesResource {
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
     logger.info("offset=" + offset + " limit=" + limit);
     InstanceCollection coll = new InstanceCollection();
-    coll.setInstances(mInstances);
+    Iterator<Instance> it = mInstances.iterator();
+    for (int i = 0; i < offset && it.hasNext(); i++) {
+      it.next();
+    }
+    List<Instance> n = new LinkedList<>();
+    for (int i = 0; i < limit && it.hasNext(); i++) {
+      n.add(it.next());
+    }
+    coll.setInstances(n);
     coll.setTotalRecords(mInstances.size());
 
     asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
