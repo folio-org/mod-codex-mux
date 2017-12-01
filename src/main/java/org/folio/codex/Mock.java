@@ -17,9 +17,10 @@ import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 
+@java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
 public class Mock implements CodexInstancesResource {
 
-  Logger logger = LoggerFactory.getLogger("codex.mock");
+  private static Logger logger = LoggerFactory.getLogger("codex.mock");
 
   List<Instance> mInstances = new LinkedList<>();
 
@@ -95,6 +96,7 @@ public class Mock implements CodexInstancesResource {
 
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+    logger.info("offset=" + offset + " limit=" + limit);
     InstanceCollection coll = new InstanceCollection();
     coll.setInstances(mInstances);
     coll.setTotalRecords(mInstances.size());

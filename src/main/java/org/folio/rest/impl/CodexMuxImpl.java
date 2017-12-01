@@ -17,10 +17,10 @@ public class CodexMuxImpl implements CodexInstancesResource {
 
   private static CodexInstancesResource mux;
   private static Map<String, CodexInstancesResource> mock = new HashMap<>();
-  Logger logger = LoggerFactory.getLogger("codex.mux");
+  private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
 
-  private CodexInstancesResource get(Map<String, String> okapiHeaders) {
+  private static CodexInstancesResource get(Map<String, String> okapiHeaders) {
     final String module = okapiHeaders.get(XOkapiHeaders.MODULE_ID.toLowerCase());
     logger.info("Impl get module = " + module);
     if (module == null) {

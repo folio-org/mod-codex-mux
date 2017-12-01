@@ -32,7 +32,7 @@ public class MuxTest {
   }
 
   private final int portOkapi = 9030;
-  private final int portMux = 9031;
+  private final int portCodex = 9031;
   private final Logger logger = LoggerFactory.getLogger("codex.mux");
   private Set<String> enabledModules = new HashSet<>();
 
@@ -49,7 +49,7 @@ public class MuxTest {
 
   private void setupMux(TestContext context, Async async) {
     JsonObject conf = new JsonObject();
-    conf.put("http.port", portMux);
+    conf.put("http.port", portCodex);
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
     vertx.deployVerticle(RestVerticle.class.getName(), opt,
@@ -80,7 +80,7 @@ public class MuxTest {
 
   private void handlerProxy(RoutingContext ctx) {
     HttpClient client = vertx.createHttpClient();
-    String url = "http://localhost:" + portMux + ctx.request().path();
+    String url = "http://localhost:" + portCodex + ctx.request().path();
     if (ctx.request().query() != null) {
       url += "?" + ctx.request().query();
     }
@@ -140,7 +140,7 @@ public class MuxTest {
     JsonObject j;
 
     logger.info("testMock");
-    RestAssured.port = portMux;
+    RestAssured.port = portCodex;
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock1")
       .header(tenantHeader)
@@ -275,7 +275,7 @@ public class MuxTest {
     JsonObject j;
 
     logger.info("testMutex");
-    RestAssured.port = portMux;
+    RestAssured.port = portCodex;
 
     RestAssured.given()
       .get("/codex-instances")
@@ -345,6 +345,49 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(200);
+
+    enabledModules.clear();
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(0, j.getInteger("totalRecords"));
+
+    enabledModules.add("mock1");
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(3, j.getInteger("totalRecords"));
+
+    enabledModules.add("mock2");
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(23, j.getInteger("totalRecords"));
+
   }
 
 }

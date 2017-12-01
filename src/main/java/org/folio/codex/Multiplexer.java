@@ -13,6 +13,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 
 public class Multiplexer implements CodexInstancesResource {
-  Logger logger = LoggerFactory.getLogger("codex.mux");
+  private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
   void getModules(LHeaders okapiHeaders, Context vertxContext, Handler<AsyncResult<List<String>>> fut) {
     logger.info("codex.mux getModules");
@@ -67,24 +68,108 @@ public class Multiplexer implements CodexInstancesResource {
     req.end();
   }
 
+  private void getByQuery(String module, Context vertxContext, String query,
+    int offset, int limit, LHeaders okapiHeaders, Map<String, InstanceCollection> cols,
+    Handler<AsyncResult<Void>> fut) {
+
+    HttpClient client = vertxContext.owner().createHttpClient();
+    String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances?"
+      + "offset=" + offset + "&limit=" + limit;
+    if (query != null) {
+      url += "&query=" + query;
+    }
+    logger.info("getByQuery url=" + url);
+    HttpClientRequest req = client.getAbs(url, res -> {
+      Buffer b = Buffer.buffer();
+      res.handler(r -> {
+        b.appendBuffer(r);
+        logger.info("getByQuery buf=" + r.toString());
+      });
+      res.endHandler(r -> {
+        InstanceCollection col = null;
+        if (res.statusCode() == 200) {
+          logger.info("getByQuery returned status 200");
+          logger.info("Response: " + b.toString());
+          try {
+            col = Json.decodeValue(b.toString(), InstanceCollection.class);
+            cols.put(module, col);
+          } catch (Exception e) {
+            client.close();
+            fut.handle(Future.failedFuture(e));
+            return;
+          }
+        }
+        client.close();
+        fut.handle(Future.succeededFuture());
+      });
+    });
+    req.setChunked(true);
+    for (Map.Entry<String, String> e : okapiHeaders.entrySet()) {
+      req.putHeader(e.getKey(), e.getValue());
+    }
+    req.putHeader(XOkapiHeaders.MODULE_ID, module);
+    req.putHeader("Accept", "application/json");
+    req.exceptionHandler(r -> {
+      client.close();
+      fut.handle(Future.failedFuture(r.getMessage()));
+    });
+    req.end();
+
+  }
 
   @Override
-  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getCodexInstances(String query, int offset, int limit, String lang,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+    Context vertxContext) throws Exception {
+
     LHeaders h = new LHeaders(okapiHeaders);
     getModules(h, vertxContext, res -> {
       if (res.failed()) {
         asyncResultHandler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
-        InstanceCollection coll = new InstanceCollection();
-        coll.setTotalRecords(0);
-        asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+        List<Instance> instances = new LinkedList<>();
+        List<Future> futures = new LinkedList<>();
+        Map<String, InstanceCollection> cols = new HashMap<>();
+        for (String m : res.result()) {
+          logger.info("Calling module " + m);
+          Future fut = Future.future();
+          getByQuery(m, vertxContext, query, offset, limit, h, cols, fut);
+          futures.add(fut);
+        }
+        CompositeFuture.all(futures).setHandler(res2 -> {
+          if (res2.failed()) {
+            asyncResultHandler.handle(Future.succeededFuture(
+              CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
+            );
+          } else {
+            int totalRecords = 0;
+            for (String m : cols.keySet()) {
+              InstanceCollection col = cols.get(m);
+              totalRecords += col.getTotalRecords();
+            }
+            for (String m : cols.keySet()) {
+              InstanceCollection col = cols.get(m);
+              // pick first non-empty now.
+              if (!col.getInstances().isEmpty()) {
+                col.setTotalRecords(totalRecords);
+                asyncResultHandler.handle(Future.succeededFuture(
+                  CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(col)));
+                return;
+              }
+            }
+            InstanceCollection coll = new InstanceCollection();
+            coll.setTotalRecords(totalRecords);
+            asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+          }
+        });
       }
     });
   }
 
   private void getById(String id, String module, Context vertxContext, LHeaders okapiHeaders,
     List<Instance> instances, Handler<AsyncResult<Void>> fut) {
+
     HttpClient client = vertxContext.owner().createHttpClient();
     final String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances/" + id;
     logger.info("getById url=" + url);
@@ -112,9 +197,7 @@ public class Multiplexer implements CodexInstancesResource {
       });
     });
     req.setChunked(true);
-    logger.info("-----------------------");
     for (Map.Entry<String, String> e : okapiHeaders.entrySet()) {
-      logger.info("h " + e.getKey() + "=" + e.getValue());
       req.putHeader(e.getKey(), e.getValue());
     }
     req.putHeader(XOkapiHeaders.MODULE_ID, module);
@@ -124,7 +207,6 @@ public class Multiplexer implements CodexInstancesResource {
       fut.handle(Future.failedFuture(r.getMessage()));
     });
     req.end();
-
   }
 
   @Override
