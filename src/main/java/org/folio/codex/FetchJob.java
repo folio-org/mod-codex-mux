@@ -17,7 +17,6 @@ public class FetchJob {
     for (FetchJob job : jobs) {
       job.limit = 0;
     }
-    int fetched = 0;
     int gPos = 0;
     int jPos = 0;
     boolean more = true;
@@ -28,7 +27,7 @@ public class FetchJob {
           break;
         }
         if (jPos < job.totalRecords) {
-          if (gPos >= offset && gPos < offset + limit) {
+          if (gPos >= offset) {
             if (job.limit == 0) {
               job.offset = jPos;
             }
