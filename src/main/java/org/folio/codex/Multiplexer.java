@@ -79,7 +79,7 @@ public class Multiplexer implements CodexInstancesResource {
         if (res.statusCode() == 200) {
           fut.handle(Future.succeededFuture(b));
         } else if (res.statusCode() == 404) {
-          fut.handle(Future.succeededFuture(Buffer.buffer()));
+          fut.handle(Future.succeededFuture(Buffer.buffer())); // empty buffer
         } else {
           fut.handle(Future.failedFuture("Get url " + url + " returned " + res.statusCode()));
         }
@@ -111,15 +111,19 @@ public class Multiplexer implements CodexInstancesResource {
     logger.info("getByQuery url=" + url);
     getUrl(module, url, client, okapiHeaders, res -> {
       if (res.failed()) {
+        logger.warn("getByQuery. getUrl failed " + res.cause());
         fut.handle(Future.failedFuture(res.cause()));
       } else {
-        InstanceCollection col = null;
-        try {
-          col = Json.decodeValue(res.result().toString(), InstanceCollection.class);
-          cols.put(module, col);
-        } catch (Exception e) {
-          fut.handle(Future.failedFuture(e));
-          return;
+        Buffer b = res.result();
+        if (b.length() > 0) {
+          InstanceCollection col = null;
+          try {
+            col = Json.decodeValue(b.toString(), InstanceCollection.class);
+            cols.put(module, col);
+          } catch (Exception e) {
+            fut.handle(Future.failedFuture(e));
+            return;
+          }
         }
         fut.handle(Future.succeededFuture());
       }
@@ -184,7 +188,7 @@ public class Multiplexer implements CodexInstancesResource {
     logger.info("getById url=" + url);
     getUrl(module, url, client, okapiHeaders, res -> {
       if (res.failed()) {
-        logger.info("getById. getUrl failed " + res.cause());
+        logger.warn("getById. getUrl failed " + res.cause());
         fut.handle(Future.failedFuture(res.cause()));
       } else {
         Instance instance = null;
@@ -193,7 +197,6 @@ public class Multiplexer implements CodexInstancesResource {
             instance = Json.decodeValue(res.result().toString(), Instance.class);
           }
         } catch (Exception e) {
-          logger.info("FAILED FUTURE");
           fut.handle(Future.failedFuture(e));
           return;
         }

@@ -409,8 +409,10 @@ public class MuxTest {
       .statusCode(200).extract().response();
 
     b = r.getBody().asString();
+    logger.info("3 records : " + b);
     j = new JsonObject(b);
     context.assertEquals(3, j.getInteger("totalRecords"));
+    context.assertEquals(3, j.getJsonArray("instances").size());
 
     enabledModules.add("mock2");
 
@@ -425,6 +427,7 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(3, j.getJsonArray("instances").size());
 
     // bad X-Okapi-Url
     RestAssured.given()
