@@ -13,7 +13,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,10 @@ public class Multiplexer implements CodexInstancesResource {
         JsonArray a = b.toJsonArray();
         for (int i = 0; i < a.size(); i++) {
           JsonObject j = a.getJsonObject(i);
-          l.add(j.getString("id"));
+          String m = j.getString("id");
+          if (!m.startsWith("mod-codex-mux")) { // avoid returning self
+            l.add(m);
+          }
         }
         client.close();
         fut.handle(Future.succeededFuture(l));
@@ -130,6 +134,76 @@ public class Multiplexer implements CodexInstancesResource {
     });
   }
 
+  private void fetchIt(List<FetchJob> jobs, Map<String, InstanceCollection> cols,
+    String query, LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
+
+    List<Future> futures = new LinkedList<>();
+    Map<String, InstanceCollection> cols2 = new LinkedHashMap<>();
+    Iterator<FetchJob> it = jobs.iterator();
+    for (String m : cols.keySet()) {
+      logger.info("Calling module " + m);
+      Future fut = Future.future();
+      FetchJob fj = it.next();
+      getByQuery(m, vertxContext, query, fj.offset, fj.limit, h, cols2, fut);
+      futures.add(fut);
+    }
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        handler.handle(Future.failedFuture(res.cause()));
+      } else {
+        int totalRecords = 0;
+        for (String m : cols2.keySet()) {
+          totalRecords += cols2.get(m).getTotalRecords();
+        }
+
+        InstanceCollection colR = new InstanceCollection();
+        colR.setTotalRecords(totalRecords);
+        boolean more = true;
+        int jPos = 0;
+        while (more) {
+          more = false;
+          for (String m : cols2.keySet()) {
+            InstanceCollection c = cols2.get(m);
+            if (jPos < c.getInstances().size()) {
+              colR.getInstances().add(c.getInstances().get(jPos));
+              more = true;
+            }
+          }
+          jPos++;
+        }
+        handler.handle(Future.succeededFuture(colR));
+      }
+    });
+  }
+
+  private void roundRobin(List<String> modules, String query, int offset, int limit,
+    LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
+
+    List<Future> futures = new LinkedList<>();
+    Map<String, InstanceCollection> cols = new LinkedHashMap<>();
+    for (String m : modules) {
+      logger.info("Calling module " + m);
+      Future fut = Future.future();
+      getByQuery(m, vertxContext, query, 0, 0, h, cols, fut);
+      futures.add(fut);
+    }
+    CompositeFuture.all(futures).setHandler(res2 -> {
+      if (res2.failed()) {
+        handler.handle(Future.failedFuture(res2.cause()));
+      } else {
+        List<FetchJob> jobs = new LinkedList<>();
+        for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
+          InstanceCollection col = key.getValue();
+          FetchJob fj = new FetchJob(col.getTotalRecords());
+          jobs.add(fj);
+        }
+        FetchJob.roundRobin(jobs, offset, limit);
+        fetchIt(jobs, cols, query, h, vertxContext, handler);
+      }
+    });
+
+  }
+
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
@@ -141,39 +215,15 @@ public class Multiplexer implements CodexInstancesResource {
         handler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
-        List<Future> futures = new LinkedList<>();
-        Map<String, InstanceCollection> cols = new HashMap<>();
-        for (String m : res.result()) {
-          logger.info("Calling module " + m);
-          Future fut = Future.future();
-          getByQuery(m, vertxContext, query, offset, limit, h, cols, fut);
-          futures.add(fut);
-        }
-        CompositeFuture.all(futures).setHandler(res2 -> {
+        roundRobin(res.result(), query, offset, limit, h, vertxContext, res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
               CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
             );
           } else {
-            int totalRecords = 0;
-            for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
-              InstanceCollection col = key.getValue();
-              totalRecords += col.getTotalRecords();
-            }
-            for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
-              InstanceCollection col = key.getValue();
-              // pick first non-empty now.
-              if (!col.getInstances().isEmpty()) {
-                col.setTotalRecords(totalRecords);
-                handler.handle(Future.succeededFuture(
-                  CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(col)));
-                return;
-              }
-            }
-            InstanceCollection coll = new InstanceCollection();
-            coll.setTotalRecords(totalRecords);
             handler.handle(Future.succeededFuture(
-              CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+              CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
+
           }
         });
       }

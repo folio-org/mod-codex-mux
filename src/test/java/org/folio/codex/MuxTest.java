@@ -357,6 +357,7 @@ public class MuxTest {
 
     enabledModules.clear();
     enabledModules.add("mock1");
+    enabledModules.add("mod-codex-mutex-1"); // ourselves!!
 
     RestAssured.given()
       .header(tenantHeader)
@@ -427,7 +428,26 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(23, j.getInteger("totalRecords"));
-    context.assertEquals(3, j.getJsonArray("instances").size());
+    context.assertEquals(10, j.getJsonArray("instances").size());
+    context.assertEquals("11224466", j.getJsonArray("instances").getJsonObject(0).getString("id"));
+    context.assertEquals("10000000", j.getJsonArray("instances").getJsonObject(1).getString("id"));
+    context.assertEquals("11224467", j.getJsonArray("instances").getJsonObject(2).getString("id"));
+    context.assertEquals("10000001", j.getJsonArray("instances").getJsonObject(3).getString("id"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo&offset=15")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(8, j.getJsonArray("instances").size());
+    context.assertEquals("10000012", j.getJsonArray("instances").getJsonObject(0).getString("id"));
+    context.assertEquals("10000019", j.getJsonArray("instances").getJsonObject(7).getString("id"));
 
     // bad X-Okapi-Url
     RestAssured.given()
@@ -437,7 +457,6 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(401).extract().response();
-
   }
 
 }
