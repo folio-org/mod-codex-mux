@@ -463,6 +463,14 @@ public class MuxTest {
     j = new JsonObject(b);
     context.assertEquals(0, j.getInteger("totalRecords"));
 
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=syntaxerror(")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400).extract().response();
+
     enabledModules.add("mock1");
 
     r = RestAssured.given()
