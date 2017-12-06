@@ -25,6 +25,7 @@ import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 
 public class Multiplexer implements CodexInstancesResource {
+
   private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
   void getModules(LHeaders okapiHeaders, Context vertxContext,
@@ -141,7 +142,6 @@ public class Multiplexer implements CodexInstancesResource {
     Map<String, InstanceCollection> cols2 = new LinkedHashMap<>();
     Iterator<FetchJob> it = jobs.iterator();
     for (String m : cols.keySet()) {
-      logger.info("Calling module " + m);
       Future fut = Future.future();
       FetchJob fj = it.next();
       getByQuery(m, vertxContext, query, fj.offset, fj.limit, h, cols2, fut);
@@ -152,8 +152,8 @@ public class Multiplexer implements CodexInstancesResource {
         handler.handle(Future.failedFuture(res.cause()));
       } else {
         int totalRecords = 0;
-        for (String m : cols2.keySet()) {
-          totalRecords += cols2.get(m).getTotalRecords();
+        for (Map.Entry<String, InstanceCollection> ent : cols2.entrySet()) {
+          totalRecords += ent.getValue().getTotalRecords();
         }
 
         InstanceCollection colR = new InstanceCollection();
@@ -162,8 +162,8 @@ public class Multiplexer implements CodexInstancesResource {
         int jPos = 0;
         while (more) {
           more = false;
-          for (String m : cols2.keySet()) {
-            InstanceCollection c = cols2.get(m);
+          for (Map.Entry<String, InstanceCollection> ent : cols2.entrySet()) {
+            InstanceCollection c = ent.getValue();
             if (jPos < c.getInstances().size()) {
               colR.getInstances().add(c.getInstances().get(jPos));
               more = true;
@@ -182,7 +182,6 @@ public class Multiplexer implements CodexInstancesResource {
     List<Future> futures = new LinkedList<>();
     Map<String, InstanceCollection> cols = new LinkedHashMap<>();
     for (String m : modules) {
-      logger.info("Calling module " + m);
       Future fut = Future.future();
       getByQuery(m, vertxContext, query, 0, 0, h, cols, fut);
       futures.add(fut);
@@ -271,7 +270,6 @@ public class Multiplexer implements CodexInstancesResource {
         List<Instance> instances = new LinkedList<>();
         List<Future> futures = new LinkedList<>();
         for (String m : res1.result()) {
-          logger.info("Calling module " + m);
           Future fut = Future.future();
           getById(id, m, vertxContext, h, instances, fut);
           futures.add(fut);
