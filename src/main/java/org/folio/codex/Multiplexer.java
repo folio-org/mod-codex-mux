@@ -13,6 +13,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -23,6 +26,11 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
+import org.z3950.zing.cql.CQLNode;
+import org.z3950.zing.cql.CQLParseException;
+import org.z3950.zing.cql.CQLParser;
+import org.z3950.zing.cql.CQLSortNode;
+import org.z3950.zing.cql.ModifierSet;
 
 public class Multiplexer implements CodexInstancesResource {
 
@@ -110,8 +118,13 @@ public class Multiplexer implements CodexInstancesResource {
     HttpClient client = vertxContext.owner().createHttpClient();
     String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances?"
       + "offset=" + offset + "&limit=" + limit;
-    if (query != null) {
-      url += "&query=" + query;
+    try {
+      if (query != null) {
+        url += "&query=" + URLEncoder.encode(query, "UTF-8");
+      }
+    } catch (UnsupportedEncodingException ex) {
+      fut.handle(Future.failedFuture(ex.getMessage()));
+      return;
     }
     logger.info("getByQuery url=" + url);
     getUrl(module, url, client, okapiHeaders, res -> {
@@ -203,6 +216,65 @@ public class Multiplexer implements CodexInstancesResource {
 
   }
 
+  private void mergeSort(List<String> modules, String query, int offset, int limit,
+    LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
+
+    List<Future> futures = new LinkedList<>();
+    Map<String, InstanceCollection> cols = new LinkedHashMap<>();
+    for (String m : modules) {
+      Future fut = Future.future();
+      getByQuery(m, vertxContext, query, 0, offset + limit, h, cols, fut);
+      futures.add(fut);
+    }
+    CompositeFuture.all(futures).setHandler(res2 -> {
+      if (res2.failed()) {
+        handler.handle(Future.failedFuture(res2.cause()));
+      } else {
+        int[] ptrs = new int[cols.size()];
+        for (int i = 0; i < ptrs.length; i++) {
+          ptrs[i] = 0;
+        }
+        int totalRecords = 0;
+        for (InstanceCollection col : cols.values()) {
+          totalRecords += col.getTotalRecords();
+        }
+        InstanceCollection colR = new InstanceCollection();
+        colR.setTotalRecords(totalRecords);
+        int gOffset = 0;
+        while (gOffset < offset + limit) {
+          String minKey = null;
+          Instance minInstance = null;
+          int minI = -1;
+          int i = 0;
+          for (InstanceCollection col : cols.values()) {
+            int idx = ptrs[i];
+            List<Instance> instances = col.getInstances();
+            if (idx < instances.size()) {
+              Instance instance = instances.get(idx);
+              String gotKey = instance.getTitle();
+              if (minKey == null || minKey.compareToIgnoreCase(gotKey) > 0) {
+                minKey = gotKey;
+                minI = i;
+                minInstance = instance;
+              }
+            }
+            i++;
+          }
+          if (minI == -1) {
+            break;
+          } else {
+            ptrs[minI]++;
+            if (gOffset >= offset) {
+              colR.getInstances().add(minInstance);
+            }
+            gOffset++;
+          }
+        }
+        handler.handle(Future.succeededFuture(colR));
+      }
+    });
+  }
+
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
@@ -214,17 +286,53 @@ public class Multiplexer implements CodexInstancesResource {
         handler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
-        roundRobin(res.result(), query, offset, limit, h, vertxContext, res2 -> {
-          if (res2.failed()) {
-            handler.handle(Future.succeededFuture(
-              CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
-            );
-          } else {
-            handler.handle(Future.succeededFuture(
-              CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
-
+        ModifierSet sortModifierSet = null;
+        if (query != null) {
+          CQLParser parser = new CQLParser(CQLParser.V1POINT2);
+          CQLNode top = null;
+          try {
+            top = parser.parse(query);
+          } catch (CQLParseException ex) {
+            logger.warn("CQLParseException: " + ex.getMessage());
+            handler.handle(
+              Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+            return;
+          } catch (IOException ex) {
+            handler.handle(
+              Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(ex.getMessage())));
+            return;
           }
-        });
+          CQLSortNode sn = CQLInspect.getSort(top);
+          if (sn != null) {
+            Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
+            if (it.hasNext()) {
+              sortModifierSet = it.next();
+            }
+          }
+        }
+        if (sortModifierSet == null) {
+          roundRobin(res.result(), query, offset, limit, h, vertxContext, res2 -> {
+            if (res2.failed()) {
+              handler.handle(Future.succeededFuture(
+                CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
+              );
+            } else {
+              handler.handle(Future.succeededFuture(
+                CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
+            }
+          });
+        } else {
+          mergeSort(res.result(), query, offset, limit, h, vertxContext, res2 -> {
+            if (res2.failed()) {
+              handler.handle(Future.succeededFuture(
+                CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
+              );
+            } else {
+              handler.handle(Future.succeededFuture(
+                CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
+            }
+          });
+        }
       }
     });
   }

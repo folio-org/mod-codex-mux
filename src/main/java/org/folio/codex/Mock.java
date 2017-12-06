@@ -6,6 +6,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -17,6 +20,12 @@ import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
+import org.z3950.zing.cql.CQLNode;
+import org.z3950.zing.cql.CQLParseException;
+import org.z3950.zing.cql.CQLParser;
+import org.z3950.zing.cql.CQLSortNode;
+import org.z3950.zing.cql.Modifier;
+import org.z3950.zing.cql.ModifierSet;
 
 @java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
 public class Mock implements CodexInstancesResource {
@@ -97,9 +106,55 @@ public class Mock implements CodexInstancesResource {
 
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-    logger.info("offset=" + offset + " limit=" + limit);
+    List<Instance> iInstances = new LinkedList<>();
+    iInstances.addAll(mInstances);
+    if (query != null) {
+      CQLParser parser = new CQLParser(CQLParser.V1POINT2);
+      CQLNode top = null;
+      try {
+        top = parser.parse(query);
+      } catch (CQLParseException ex) {
+        logger.warn("CQLParseException: " + ex.getMessage());
+        asyncResultHandler.handle(
+          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+        return;
+      } catch (IOException ex) {
+        asyncResultHandler.handle(
+          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(ex.getMessage())));
+        return;
+      }
+      CQLSortNode sn = CQLInspect.getSort(top);
+      if (sn != null) {
+        Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
+        if (it.hasNext()) {
+          ModifierSet s = it.next();
+          List<Modifier> mods = s.getModifiers();
+          boolean reverse = false;
+          for (Modifier mod : mods) {
+            if (mod.getType().startsWith("desc")) {
+              reverse = true;
+            }
+          }
+          final boolean fReverse = reverse;
+          String index = s.getBase();
+          if ("title".equals(index)) {
+            Collections.sort(iInstances, new Comparator<Instance>() {
+              @Override
+              public int compare(Instance i1, Instance i2) {
+                int r = i1.getTitle().compareToIgnoreCase(i2.getTitle());
+                return fReverse ? -r : r;
+              }
+            });
+          } else {
+            asyncResultHandler.handle(
+              Future.succeededFuture(
+                CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest("unsupported sort index " + index)));
+          }
+        }
+      }
+    }
     InstanceCollection coll = new InstanceCollection();
-    Iterator<Instance> it = mInstances.iterator();
+    Iterator<Instance> it = iInstances.iterator();
     for (int i = 0; i < offset && it.hasNext(); i++) {
       it.next();
     }
@@ -108,7 +163,7 @@ public class Mock implements CodexInstancesResource {
       n.add(it.next());
     }
     coll.setInstances(n);
-    coll.setTotalRecords(mInstances.size());
+    coll.setTotalRecords(iInstances.size());
 
     asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
   }

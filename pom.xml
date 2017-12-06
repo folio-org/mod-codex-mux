@@ -27,6 +27,11 @@
       <name>FOLIO Maven repository</name>
       <url>https://repository.folio.org/repository/maven-folio</url>
     </repository>
+    <repository>
+      <id>indexdata</id>
+      <name>Index Data</name>
+      <url>http://maven.indexdata.com/</url>
+    </repository>
   </repositories>
 
   <distributionManagement>
@@ -96,12 +101,16 @@
       <version>${vertx-version}</version>
     </dependency>
     <dependency>
+      <groupId>org.z3950.zing</groupId>
+      <artifactId>cql-java</artifactId>
+      <version>1.13</version>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
       <version>${vertx-version}</version>
       <scope>test</scope>
     </dependency>
-
 
   </dependencies>
 

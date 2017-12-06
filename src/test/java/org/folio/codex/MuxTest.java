@@ -221,6 +221,69 @@ public class MuxTest {
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
+      .get("/codex-instances?query=foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000001", a.getJsonObject(1).getString("id"));
+    context.assertEquals("10000009", a.getJsonObject(9).getString("id"));
+
+    RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
+      .get("/codex-instances?query=syntaxerror(")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400).extract().response();
+
+    RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
+      .get("/codex-instances?query=a sortby unknown")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400).extract().response();
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
+      .get("/codex-instances?query=a sortby title")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000001", a.getJsonObject(1).getString("id"));
+    context.assertEquals("10000010", a.getJsonObject(2).getString("id"));
+    context.assertEquals("10000011", a.getJsonObject(3).getString("id"));
+    context.assertEquals("10000017", a.getJsonObject(9).getString("id"));
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
+      .get("/codex-instances?query=a sortby title / descending")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("10000009", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000008", a.getJsonObject(1).getString("id"));
+    context.assertEquals("10000018", a.getJsonObject(9).getString("id"));
+
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock2")
+      .header(tenantHeader)
       .get("/codex-instances")
       .then()
       .log().ifValidationFails()
@@ -311,6 +374,7 @@ public class MuxTest {
     Response r;
     String b;
     JsonObject j;
+    JsonArray a;
 
     logger.info("testMutex");
     RestAssured.port = portCodex;
@@ -408,12 +472,30 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
-
     b = r.getBody().asString();
-    logger.info("3 records : " + b);
     j = new JsonObject(b);
     context.assertEquals(3, j.getInteger("totalRecords"));
-    context.assertEquals(3, j.getJsonArray("instances").size());
+    a = j.getJsonArray("instances");
+    context.assertEquals(3, a.size());
+    context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
+    context.assertEquals("11224467", a.getJsonObject(1).getString("id"));
+    context.assertEquals("73090924", a.getJsonObject(2).getString("id"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo sortby title")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(3, j.getInteger("totalRecords"));
+    a = j.getJsonArray("instances");
+    context.assertEquals(3, a.size());
+    context.assertEquals("73090924", a.getJsonObject(0).getString("id"));
+    context.assertEquals("11224466", a.getJsonObject(1).getString("id"));
+    context.assertEquals("11224467", a.getJsonObject(2).getString("id"));
 
     enabledModules.add("mock2");
 
@@ -428,11 +510,12 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(23, j.getInteger("totalRecords"));
-    context.assertEquals(10, j.getJsonArray("instances").size());
-    context.assertEquals("11224466", j.getJsonArray("instances").getJsonObject(0).getString("id"));
-    context.assertEquals("10000000", j.getJsonArray("instances").getJsonObject(1).getString("id"));
-    context.assertEquals("11224467", j.getJsonArray("instances").getJsonObject(2).getString("id"));
-    context.assertEquals("10000001", j.getJsonArray("instances").getJsonObject(3).getString("id"));
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000000", a.getJsonObject(1).getString("id"));
+    context.assertEquals("11224467", a.getJsonObject(2).getString("id"));
+    context.assertEquals("10000001", a.getJsonObject(3).getString("id"));
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -444,10 +527,30 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
+    a = j.getJsonArray("instances");
     context.assertEquals(23, j.getInteger("totalRecords"));
-    context.assertEquals(8, j.getJsonArray("instances").size());
-    context.assertEquals("10000012", j.getJsonArray("instances").getJsonObject(0).getString("id"));
-    context.assertEquals("10000019", j.getJsonArray("instances").getJsonObject(7).getString("id"));
+    context.assertEquals(8, a.size());
+    context.assertEquals("10000012", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000019", a.getJsonObject(7).getString("id"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo sortby title")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(23, j.getInteger("totalRecords"));
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("73090924", a.getJsonObject(0).getString("id"));
+    context.assertEquals("11224466", a.getJsonObject(1).getString("id"));
+    context.assertEquals("11224467", a.getJsonObject(2).getString("id"));
+    context.assertEquals("10000000", a.getJsonObject(3).getString("id"));
+    context.assertEquals("10000001", a.getJsonObject(4).getString("id"));
 
     // bad X-Okapi-Url
     RestAssured.given()
