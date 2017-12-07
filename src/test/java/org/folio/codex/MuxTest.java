@@ -575,6 +575,23 @@ public class MuxTest {
     context.assertEquals("10000000", a.getJsonObject(3).getString("id"));
     context.assertEquals("10000001", a.getJsonObject(4).getString("id"));
 
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo sortby id")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(23, j.getInteger("totalRecords"));
+    a = j.getJsonArray("instances");
+    context.assertEquals(10, a.size());
+    context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
+    context.assertEquals("10000001", a.getJsonObject(1).getString("id"));
+    context.assertEquals("10000009", a.getJsonObject(9).getString("id"));
+
     // bad X-Okapi-Url
     RestAssured.given()
       .header(tenantHeader)
