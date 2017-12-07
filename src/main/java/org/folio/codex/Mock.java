@@ -24,8 +24,6 @@ import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
 import org.z3950.zing.cql.CQLSortNode;
-import org.z3950.zing.cql.Modifier;
-import org.z3950.zing.cql.ModifierSet;
 
 @java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
 public class Mock implements CodexInstancesResource {

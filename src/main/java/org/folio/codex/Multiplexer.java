@@ -161,55 +161,62 @@ public class Multiplexer implements CodexInstancesResource {
       if (res2.failed()) {
         handler.handle(Future.failedFuture(res2.cause()));
       } else {
-        int[] ptrs = new int[cols.size()];
-        for (int i = 0; i < ptrs.length; i++) {
-          ptrs[i] = 0;
-        }
-        int totalRecords = 0;
-        for (InstanceCollection col : cols.values()) {
-          totalRecords += col.getTotalRecords();
-        }
-        InstanceCollection colR = new InstanceCollection();
-        colR.setTotalRecords(totalRecords);
-        int gOffset = 0;
-        while (gOffset < offset + limit) {
-          Instance minInstance = null;
-          int minI = -1;
-          int i = 0;
-          for (InstanceCollection col : cols.values()) {
-            int idx = ptrs[i];
-            List<Instance> instances = col.getInstances();
-            if (idx < instances.size()) {
-              if (comp == null) { // round-robin
-                if (minI == -1 || ptrs[minI] > ptrs[i]) {
-                  Instance instance = instances.get(idx);
-                  minI = i;
-                  minInstance = instance;
-                }
-              } else {
-                Instance instance = instances.get(idx);
-                if (minInstance == null
-                  || comp.compare(minInstance, instance) > 0) {
-                  minI = i;
-                  minInstance = instance;
-                }
-              }
-            }
-            i++;
-          }
-          if (minI == -1) {
-            break;
-          } else {
-            ptrs[minI]++;
-            if (gOffset >= offset) {
-              colR.getInstances().add(minInstance);
-            }
-            gOffset++;
-          }
-        }
+        InstanceCollection colR = mergeSet2(cols, offset, limit, comp);
         handler.handle(Future.succeededFuture(colR));
       }
     });
+  }
+
+  private InstanceCollection mergeSet2(Map<String, InstanceCollection> cols,
+    int offset, int limit, Comparator<Instance> comp) {
+
+    int[] ptrs = new int[cols.size()];
+    for (int i = 0; i < ptrs.length; i++) {
+      ptrs[i] = 0;
+    }
+    int totalRecords = 0;
+    for (InstanceCollection col : cols.values()) {
+      totalRecords += col.getTotalRecords();
+    }
+    InstanceCollection colR = new InstanceCollection();
+    colR.setTotalRecords(totalRecords);
+    int gOffset = 0;
+    while (gOffset < offset + limit) {
+      Instance minInstance = null;
+      int minI = -1;
+      int i = 0;
+      for (InstanceCollection col : cols.values()) {
+        int idx = ptrs[i];
+        List<Instance> instances = col.getInstances();
+        if (idx < instances.size()) {
+          if (comp == null) { // round-robin
+            if (minI == -1 || ptrs[minI] > ptrs[i]) {
+              Instance instance = instances.get(idx);
+              minI = i;
+              minInstance = instance;
+            }
+          } else {
+            Instance instance = instances.get(idx);
+            if (minInstance == null
+              || comp.compare(minInstance, instance) > 0) {
+              minI = i;
+              minInstance = instance;
+            }
+          }
+        }
+        i++;
+      }
+      if (minI == -1) {
+        break;
+      } else {
+        ptrs[minI]++;
+        if (gOffset >= offset) {
+          colR.getInstances().add(minInstance);
+        }
+        gOffset++;
+      }
+    }
+    return colR;
   }
 
   @Override
