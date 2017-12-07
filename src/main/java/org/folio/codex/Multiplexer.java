@@ -170,10 +170,7 @@ public class Multiplexer implements CodexInstancesResource {
   private InstanceCollection mergeSet2(Map<String, InstanceCollection> cols,
     int offset, int limit, Comparator<Instance> comp) {
 
-    int[] ptrs = new int[cols.size()];
-    for (int i = 0; i < ptrs.length; i++) {
-      ptrs[i] = 0;
-    }
+    int[] ptrs = new int[cols.size()]; // all 0
     int totalRecords = 0;
     for (InstanceCollection col : cols.values()) {
       totalRecords += col.getTotalRecords();
