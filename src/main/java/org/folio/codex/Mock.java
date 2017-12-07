@@ -97,7 +97,7 @@ public class Mock implements CodexInstancesResource {
         c.setType("Personal name");
         cs.add(c);
         e.setContributor(cs);
-        e.setDate("1991");
+        e.setDate(Integer.toString(2010 - i));
         e.setId(Integer.toString(10000000 + i));
         mInstances.add(e);
       }
@@ -125,31 +125,13 @@ public class Mock implements CodexInstancesResource {
       }
       CQLSortNode sn = CQLInspect.getSort(top);
       if (sn != null) {
-        Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
-        if (it.hasNext()) {
-          ModifierSet s = it.next();
-          List<Modifier> mods = s.getModifiers();
-          boolean reverse = false;
-          for (Modifier mod : mods) {
-            if (mod.getType().startsWith("desc")) {
-              reverse = true;
-            }
-          }
-          final boolean fReverse = reverse;
-          String index = s.getBase();
-          if ("title".equals(index)) {
-            Collections.sort(iInstances, new Comparator<Instance>() {
-              @Override
-              public int compare(Instance i1, Instance i2) {
-                int r = i1.getTitle().compareToIgnoreCase(i2.getTitle());
-                return fReverse ? -r : r;
-              }
-            });
-          } else {
-            asyncResultHandler.handle(
-              Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest("unsupported sort index " + index)));
-          }
+        try {
+          Comparator<Instance> comp = InstanceComparator.get(sn);
+          Collections.sort(iInstances, comp);
+        } catch (IllegalArgumentException ex) {
+          asyncResultHandler.handle(
+            Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+          return;
         }
       }
     }

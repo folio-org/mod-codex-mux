@@ -282,6 +282,21 @@ public class MuxTest {
     context.assertEquals("10000018", a.getJsonObject(9).getString("id"));
 
     r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
+      .header(tenantHeader)
+      .get("/codex-instances?query=a sortby date / descending")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonArray("instances");
+    context.assertEquals(3, a.size());
+    context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
+    context.assertEquals("11224467", a.getJsonObject(1).getString("id"));
+    context.assertEquals("73090924", a.getJsonObject(2).getString("id"));
+
+    r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
       .get("/codex-instances")

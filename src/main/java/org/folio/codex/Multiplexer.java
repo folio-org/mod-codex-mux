@@ -16,7 +16,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +30,6 @@ import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
 import org.z3950.zing.cql.CQLSortNode;
-import org.z3950.zing.cql.ModifierSet;
 
 public class Multiplexer implements CodexInstancesResource {
 
@@ -148,75 +147,7 @@ public class Multiplexer implements CodexInstancesResource {
     });
   }
 
-  private void fetchIt(List<FetchJob> jobs, Map<String, InstanceCollection> cols,
-    String query, LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
-
-    List<Future> futures = new LinkedList<>();
-    Map<String, InstanceCollection> cols2 = new LinkedHashMap<>();
-    Iterator<FetchJob> it = jobs.iterator();
-    for (String m : cols.keySet()) {
-      Future fut = Future.future();
-      FetchJob fj = it.next();
-      getByQuery(m, vertxContext, query, fj.offset, fj.limit, h, cols2, fut);
-      futures.add(fut);
-    }
-    CompositeFuture.all(futures).setHandler(res -> {
-      if (res.failed()) {
-        handler.handle(Future.failedFuture(res.cause()));
-      } else {
-        int totalRecords = 0;
-        for (Map.Entry<String, InstanceCollection> ent : cols2.entrySet()) {
-          totalRecords += ent.getValue().getTotalRecords();
-        }
-
-        InstanceCollection colR = new InstanceCollection();
-        colR.setTotalRecords(totalRecords);
-        boolean more = true;
-        int jPos = 0;
-        while (more) {
-          more = false;
-          for (Map.Entry<String, InstanceCollection> ent : cols2.entrySet()) {
-            InstanceCollection c = ent.getValue();
-            if (jPos < c.getInstances().size()) {
-              colR.getInstances().add(c.getInstances().get(jPos));
-              more = true;
-            }
-          }
-          jPos++;
-        }
-        handler.handle(Future.succeededFuture(colR));
-      }
-    });
-  }
-
-  private void roundRobin(List<String> modules, String query, int offset, int limit,
-    LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
-
-    List<Future> futures = new LinkedList<>();
-    Map<String, InstanceCollection> cols = new LinkedHashMap<>();
-    for (String m : modules) {
-      Future fut = Future.future();
-      getByQuery(m, vertxContext, query, 0, 0, h, cols, fut);
-      futures.add(fut);
-    }
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        handler.handle(Future.failedFuture(res2.cause()));
-      } else {
-        List<FetchJob> jobs = new LinkedList<>();
-        for (Map.Entry<String, InstanceCollection> key : cols.entrySet()) {
-          InstanceCollection col = key.getValue();
-          FetchJob fj = new FetchJob(col.getTotalRecords());
-          jobs.add(fj);
-        }
-        FetchJob.roundRobin(jobs, offset, limit);
-        fetchIt(jobs, cols, query, h, vertxContext, handler);
-      }
-    });
-
-  }
-
-  private void mergeSort(List<String> modules, String query, int offset, int limit,
+  private void mergeSort(List<String> modules, String query, int offset, int limit, Comparator<Instance> comp,
     LHeaders h, Context vertxContext, Handler<AsyncResult<InstanceCollection>> handler) {
 
     List<Future> futures = new LinkedList<>();
@@ -242,7 +173,6 @@ public class Multiplexer implements CodexInstancesResource {
         colR.setTotalRecords(totalRecords);
         int gOffset = 0;
         while (gOffset < offset + limit) {
-          String minKey = null;
           Instance minInstance = null;
           int minI = -1;
           int i = 0;
@@ -250,12 +180,19 @@ public class Multiplexer implements CodexInstancesResource {
             int idx = ptrs[i];
             List<Instance> instances = col.getInstances();
             if (idx < instances.size()) {
-              Instance instance = instances.get(idx);
-              String gotKey = instance.getTitle();
-              if (minKey == null || minKey.compareToIgnoreCase(gotKey) > 0) {
-                minKey = gotKey;
-                minI = i;
-                minInstance = instance;
+              if (comp == null) { // round-robin
+                if (minI == -1 || ptrs[minI] > ptrs[i]) {
+                  Instance instance = instances.get(idx);
+                  minI = i;
+                  minInstance = instance;
+                }
+              } else {
+                Instance instance = instances.get(idx);
+                if (minInstance == null
+                  || comp.compare(minInstance, instance) > 0) {
+                  minI = i;
+                  minInstance = instance;
+                }
               }
             }
             i++;
@@ -286,7 +223,7 @@ public class Multiplexer implements CodexInstancesResource {
         handler.handle(Future.succeededFuture(
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
-        ModifierSet sortModifierSet = null;
+        Comparator<Instance> comp = null;
         if (query != null) {
           CQLParser parser = new CQLParser(CQLParser.V1POINT2);
           CQLNode top = null;
@@ -304,35 +241,26 @@ public class Multiplexer implements CodexInstancesResource {
           }
           CQLSortNode sn = CQLInspect.getSort(top);
           if (sn != null) {
-            Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
-            if (it.hasNext()) {
-              sortModifierSet = it.next();
+            try {
+              comp = InstanceComparator.get(sn);
+            } catch (IllegalArgumentException ex) {
+              handler.handle(
+                Future.succeededFuture(
+                  CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+              return;
             }
           }
         }
-        if (sortModifierSet == null) {
-          roundRobin(res.result(), query, offset, limit, h, vertxContext, res2 -> {
-            if (res2.failed()) {
-              handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
-              );
-            } else {
-              handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
-            }
-          });
-        } else {
-          mergeSort(res.result(), query, offset, limit, h, vertxContext, res2 -> {
-            if (res2.failed()) {
-              handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
-              );
-            } else {
-              handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
-            }
-          });
-        }
+        mergeSort(res.result(), query, offset, limit, comp, h, vertxContext, res2 -> {
+          if (res2.failed()) {
+            handler.handle(Future.succeededFuture(
+              CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
+            );
+          } else {
+            handler.handle(Future.succeededFuture(
+              CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
+          }
+        });
       }
     });
   }
