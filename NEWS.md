@@ -1,3 +1,9 @@
+## 1.1.0 2017-12-15
+
+ * MODCXMUX-3 Update to raml as of December 15, 2017. The new definition is
+   more strict than previous version of codex, so interface version
+   is now 2.0.
+
 ## 1.0.0 2017-12-07
 
  * Initial release
