@@ -206,6 +206,15 @@ public class MuxTest {
     a = j.getJsonArray("instances");
     context.assertEquals(a.size(), 2);
 
+    // provoke 400 error in mock (mock prefix in query)
+    RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
+      .header(tenantHeader)
+      .get("/codex-instances?query=mock")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400);
+
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
@@ -622,6 +631,38 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(401).extract().response();
+
+    // all modules will fail
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=mock")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(400).extract().response();
+    context.assertEquals("Module mock1 400\n"
+      + "provoked unsupported mock\n"
+      + "Module mock2 400\n"
+      + "provoked unsupported mock\n", r.getBody().asString());
+
+    // only mock1 will work
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=mock1")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200);
+
+    // only mock2 will work
+    RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=mock2")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200);
+
   }
 
 }
