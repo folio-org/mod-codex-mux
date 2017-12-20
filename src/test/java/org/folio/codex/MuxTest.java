@@ -543,6 +543,28 @@ public class MuxTest {
     r = RestAssured.given()
       .header(tenantHeader)
       .header(urlHeader)
+      .get("/codex-instances/11224466")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals("11224466", j.getString("id"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances/10000000")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals("10000000", j.getString("id"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
       .get("/codex-instances?query=foo&offset=15")
       .then()
       .log().ifValidationFails()
