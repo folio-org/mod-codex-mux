@@ -125,7 +125,7 @@ public class Mock implements CodexInstancesResource {
         return;
       }
       // be able to provoke 400 for mock prefix
-      if (query != null && query.startsWith("mock") && !query.equals(id)) {
+      if (query.startsWith("mock") && !query.equals(id)) {
         asyncResultHandler.handle(
           Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest("provoked unsupported " + query)));
         return;

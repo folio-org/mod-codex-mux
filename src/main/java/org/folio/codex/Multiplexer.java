@@ -138,7 +138,6 @@ public class Multiplexer implements CodexInstancesResource {
       } else {
         MuxCollection mc = res.result();
         if (mc.statusCode == 200) {
-          InstanceCollection col = null;
           try {
             mc.col = Json.decodeValue(mc.message.toString(), InstanceCollection.class);
           } catch (Exception e) {
