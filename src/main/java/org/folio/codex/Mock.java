@@ -32,7 +32,10 @@ public class Mock implements CodexInstancesResource {
 
   List<Instance> mInstances = new LinkedList<>();
 
+  private String id;
+
   public Mock(String id) {
+    this.id = id;
     logger.info("Mock " + id + " starting");
     if (id.equals("mock1")) {
       {
@@ -119,6 +122,12 @@ public class Mock implements CodexInstancesResource {
       } catch (IOException ex) {
         asyncResultHandler.handle(
           Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(ex.getMessage())));
+        return;
+      }
+      // be able to provoke 400 for mock prefix
+      if (query.startsWith("mock") && !query.equals(id)) {
+        asyncResultHandler.handle(
+          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest("provoked unsupported " + query)));
         return;
       }
       CQLSortNode sn = CQLInspect.getSort(top);
