@@ -1,3 +1,8 @@
+## 1.2.0 2017-12-20
+
+ * MODCXMUX-4 / MODCXMUX-5 Ignore unsupported features (400 errors)
+ * MODCXMUX-6 Fix Null instance is returned
+
 ## 1.1.0 2017-12-15
 
  * MODCXMUX-3 Update to raml as of December 15, 2017. The new definition is
