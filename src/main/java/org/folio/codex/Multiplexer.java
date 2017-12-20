@@ -224,6 +224,50 @@ public class Multiplexer implements CodexInstancesResource {
     return colR;
   }
 
+  void analyzeResult(Map<String, MuxCollection> cols, InstanceCollection res,
+    Handler<AsyncResult<Response>> handler) {
+
+    int noSucceeded = 0;
+    int noFailed = 0;
+    int no500 = 0;
+    for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
+      MuxCollection mc = ent.getValue();
+      if (mc.statusCode == 200) {
+        noSucceeded++;
+      } else {
+        noFailed++;
+        if (mc.statusCode == 500) {
+          no500++;
+        }
+        logger.warn("Module " + ent.getKey() + " returned status " + mc.statusCode);
+        logger.warn(mc.message.toString());
+      }
+    }
+    if (noFailed > 0 && (no500 > 0 || noSucceeded == 0)) {
+      Buffer msg = Buffer.buffer();
+      for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
+        MuxCollection mc = ent.getValue();
+        msg.appendString("Module " + ent.getKey() + " " + mc.statusCode + "\n");
+        msg.appendBuffer(mc.message);
+        msg.appendString("\n");
+      }
+      if (no500 > 0) {
+        // at least one source returned 500.. do the same here
+        handler.handle(
+          Future.succeededFuture(
+            CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(msg.toString())));
+      } else {
+        // most likely 400 errors .. do the same here
+        handler.handle(
+          Future.succeededFuture(
+            CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(msg.toString())));
+      }
+    } else {
+      handler.handle(Future.succeededFuture(
+        CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res)));
+    }
+  }
+
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
@@ -270,45 +314,7 @@ public class Multiplexer implements CodexInstancesResource {
               CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
             );
           } else {
-            int noSucceeded = 0;
-            int noFailed = 0;
-            int no500 = 0;
-            for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
-              MuxCollection mc = ent.getValue();
-              if (mc.statusCode == 200) {
-                noSucceeded++;
-              } else {
-                noFailed++;
-                if (mc.statusCode == 500) {
-                  no500++;
-                }
-                logger.warn("Module " + ent.getKey() + " returned status " + mc.statusCode);
-                logger.warn(mc.message.toString());
-              }
-            }
-            if (noFailed > 0 && (no500 > 0 || noSucceeded == 0)) {
-              Buffer msg = Buffer.buffer();
-              for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
-                MuxCollection mc = ent.getValue();
-                msg.appendString("Module " + ent.getKey() + " " + mc.statusCode + "\n");
-                msg.appendBuffer(mc.message);
-                msg.appendString("\n");
-              }
-              if (no500 > 0) {
-                // at least one source returned 500.. do the same here
-                handler.handle(
-                  Future.succeededFuture(
-                    CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(msg.toString())));
-              } else {
-                // most likely 400 errors .. do the same here
-                handler.handle(
-                  Future.succeededFuture(
-                    CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(msg.toString())));
-              }
-            } else {
-              handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res2.result())));
-            }
+            analyzeResult(cols, res2.result(), handler);
           }
         });
       }
