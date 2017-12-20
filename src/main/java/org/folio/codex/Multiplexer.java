@@ -280,16 +280,16 @@ public class Multiplexer implements CodexInstancesResource {
         logger.warn("getById. getUrl failed " + res.cause());
         fut.handle(Future.failedFuture(res.cause()));
       } else {
-        Instance instance = null;
         try {
           if (res.result().length() > 0) {
+            Instance instance = null;
             instance = Json.decodeValue(res.result().toString(), Instance.class);
+            instances.add(instance);
           }
         } catch (Exception e) {
           fut.handle(Future.failedFuture(e));
           return;
         }
-        instances.add(instance);
         fut.handle(Future.succeededFuture());
       }
     });
