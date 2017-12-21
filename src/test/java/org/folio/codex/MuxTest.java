@@ -20,6 +20,14 @@ import org.junit.runner.RunWith;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.folio.rest.RestVerticle;
@@ -45,7 +53,16 @@ public class MuxTest {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+
+    // Register the context exception handler to catch assertThat
+    vertx.exceptionHandler(context.exceptionHandler());
+
     setupMux(context, context.async());
+  }
+
+  @After
+  public void after(TestContext context) {
+    vertx.close(context.asyncAssertSuccess());
   }
 
   private void setupMux(TestContext context, Async async) {
@@ -132,6 +149,43 @@ public class MuxTest {
     vertx.close(context.asyncAssertSuccess(res -> {
       async.complete();
     }));
+  }
+
+  /**
+   * Assert that the response contains the instances field that
+   * is an array where each array element contains the id field
+   * and these match expectedIds in any order.
+   * @param response - to check
+   * @param expectedIds - to compare to
+   */
+  private void assertInstanceIds(Response response, String ... expectedIds) {
+    String body = response.getBody().asString();
+    JsonObject jsonObject = new JsonObject(body);
+    JsonArray array = jsonObject.getJsonArray("instances");
+    String [] ids = new String [array.size()];
+    for (int i=0; i<ids.length; i++) {
+      ids[i] = array.getJsonObject(i).getString("id");
+    }
+    assertThat(Arrays.asList(ids), hasItems(expectedIds));
+    assertThat(ids.length, is(expectedIds.length));
+  }
+
+  /**
+   * Assert that the response contains the instances field that
+   * is an array where each array element contains the id field
+   * and these match expectedIds in that order.
+   * @param response - to check
+   * @param expectedIds - to compare to
+   */
+  private void assertInstanceIdsSorted(Response response, String ... expectedIds) {
+    String body = response.getBody().asString();
+    JsonObject jsonObject = new JsonObject(body);
+    JsonArray array = jsonObject.getJsonArray("instances");
+    String [] ids = new String [array.size()];
+    for (int i=0; i<ids.length; i++) {
+      ids[i] = array.getJsonObject(i).getString("id");
+    }
+    assertThat(ids, is(expectedIds));
   }
 
   @Test
@@ -265,15 +319,8 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
-    b = r.getBody().asString();
-    j = new JsonObject(b);
-    a = j.getJsonArray("instances");
-    context.assertEquals(10, a.size());
-    context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
-    context.assertEquals("10000001", a.getJsonObject(1).getString("id"));
-    context.assertEquals("10000010", a.getJsonObject(2).getString("id"));
-    context.assertEquals("10000011", a.getJsonObject(3).getString("id"));
-    context.assertEquals("10000017", a.getJsonObject(9).getString("id"));
+    assertInstanceIdsSorted(r, "10000000", "10000001", "10000010", "10000011", "10000012",
+        "10000013", "10000014", "10000015", "10000016", "10000017");
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
@@ -282,13 +329,8 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
-    b = r.getBody().asString();
-    j = new JsonObject(b);
-    a = j.getJsonArray("instances");
-    context.assertEquals(10, a.size());
-    context.assertEquals("10000009", a.getJsonObject(0).getString("id"));
-    context.assertEquals("10000008", a.getJsonObject(1).getString("id"));
-    context.assertEquals("10000018", a.getJsonObject(9).getString("id"));
+    assertInstanceIdsSorted(r, "10000009", "10000008", "10000007", "10000006", "10000005",
+        "10000004", "10000003", "10000002", "10000019", "10000018");
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock1")
@@ -297,13 +339,7 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
-    b = r.getBody().asString();
-    j = new JsonObject(b);
-    a = j.getJsonArray("instances");
-    context.assertEquals(3, a.size());
-    context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
-    context.assertEquals("11224467", a.getJsonObject(1).getString("id"));
-    context.assertEquals("73090924", a.getJsonObject(2).getString("id"));
+    assertInstanceIdsSorted(r, "11224466", "11224467", "73090924");
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
@@ -349,7 +385,6 @@ public class MuxTest {
   public void testMiniOkapi(TestContext context) {
     Response r;
     String b;
-    JsonObject j;
     JsonArray a;
 
     logger.info("testMiniOkapi");
@@ -523,11 +558,7 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(3, j.getInteger("totalRecords"));
-    a = j.getJsonArray("instances");
-    context.assertEquals(3, a.size());
-    context.assertEquals("73090924", a.getJsonObject(0).getString("id"));
-    context.assertEquals("11224466", a.getJsonObject(1).getString("id"));
-    context.assertEquals("11224467", a.getJsonObject(2).getString("id"));
+    assertInstanceIdsSorted(r, "73090924", "11224466", "11224467");
 
     enabledModules.add("mock2");
 
@@ -542,12 +573,8 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     context.assertEquals(23, j.getInteger("totalRecords"));
-    a = j.getJsonArray("instances");
-    context.assertEquals(10, a.size());
-    context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
-    context.assertEquals("10000000", a.getJsonObject(1).getString("id"));
-    context.assertEquals("11224467", a.getJsonObject(2).getString("id"));
-    context.assertEquals("10000001", a.getJsonObject(3).getString("id"));
+    assertInstanceIds(r, "10000000", "11224466", "10000001", "11224467", "10000002",
+        "73090924", "10000003", "10000004", "10000005", "10000006");
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -640,10 +667,9 @@ public class MuxTest {
       .then()
       .log().ifValidationFails()
       .statusCode(400).extract().response();
-    context.assertEquals("Module mock1 400\n"
-      + "provoked unsupported mock\n"
-      + "Module mock2 400\n"
-      + "provoked unsupported mock\n", r.getBody().asString());
+    assertThat(r.getBody().asString(), allOf(
+        containsString("Module mock1 400\nprovoked unsupported mock"),
+        containsString("Module mock2 400\nprovoked unsupported mock") ));
 
     // only mock1 will work
     RestAssured.given()
