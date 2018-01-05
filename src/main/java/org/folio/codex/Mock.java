@@ -19,6 +19,7 @@ import javax.ws.rs.core.Response;
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
+import org.folio.rest.jaxrs.model.ResultInfo;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
@@ -152,7 +153,8 @@ public class Mock implements CodexInstancesResource {
       n.add(it.next());
     }
     coll.setInstances(n);
-    coll.setTotalRecords(iInstances.size());
+    ResultInfo resultInfo = new ResultInfo().withTotalRecords(iInstances.size());
+    coll.setResultInfo(resultInfo);
 
     asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
   }

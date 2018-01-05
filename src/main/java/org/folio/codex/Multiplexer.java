@@ -25,6 +25,8 @@ import javax.ws.rs.core.Response;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
+import org.folio.rest.jaxrs.model.ResultInfo;
+import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
@@ -139,7 +141,15 @@ public class Multiplexer implements CodexInstancesResource {
         MuxCollection mc = res.result();
         if (mc.statusCode == 200) {
           try {
-            mc.col = Json.decodeValue(mc.message.toString(), InstanceCollection.class);
+            JsonObject j = new JsonObject(mc.message.toString());
+            if (j.getJsonObject("resultInfo") == null) {
+              JsonObject ri = new JsonObject();
+              ri.put("totalRecords", j.remove("totalRecords"));
+              ri.put("facets", new JsonArray());
+              ri.put("diagnostics", new JsonArray());
+              j.put("resultInfo", ri);
+            }
+            mc.col = Json.decodeValue(j.encode(), InstanceCollection.class);
           } catch (Exception e) {
             fut.handle(Future.failedFuture(e));
             return;
@@ -177,12 +187,13 @@ public class Multiplexer implements CodexInstancesResource {
     int[] ptrs = new int[cols.size()]; // all 0
     int totalRecords = 0;
     for (MuxCollection col : cols.values()) {
-      if (col.col != null) {
-        totalRecords += col.col.getTotalRecords();
+      if (col.col != null && col.col.getResultInfo() != null) {
+        totalRecords += col.col.getResultInfo().getTotalRecords();
       }
     }
     InstanceCollection colR = new InstanceCollection();
-    colR.setTotalRecords(totalRecords);
+    ResultInfo resultInfo = new ResultInfo().withTotalRecords(totalRecords);
+    colR.setResultInfo(resultInfo);
     int gOffset = 0;
     while (gOffset < offset + limit) {
       Instance minInstance = null;
@@ -227,14 +238,19 @@ public class Multiplexer implements CodexInstancesResource {
   void analyzeResult(Map<String, MuxCollection> cols, InstanceCollection res,
     Handler<AsyncResult<Response>> handler) {
 
+    List<Diagnostic> dl = new LinkedList<>();
     int noSucceeded = 0;
     int noFailed = 0;
     int no500 = 0;
     for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
       MuxCollection mc = ent.getValue();
+      Diagnostic d = new Diagnostic();
+      d.setSource(ent.getKey());
+      d.setCode(Integer.toString(mc.statusCode));
       if (mc.statusCode == 200) {
         noSucceeded++;
       } else {
+        d.setMessage(mc.message.toString());
         noFailed++;
         if (mc.statusCode == 500) {
           no500++;
@@ -242,6 +258,7 @@ public class Multiplexer implements CodexInstancesResource {
         logger.warn("Module " + ent.getKey() + " returned status " + mc.statusCode);
         logger.warn(mc.message.toString());
       }
+      dl.add(d);
     }
     if (noFailed > 0 && (no500 > 0 || noSucceeded == 0)) {
       Buffer msg = Buffer.buffer();
@@ -263,6 +280,9 @@ public class Multiplexer implements CodexInstancesResource {
             CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(msg.toString())));
       }
     } else {
+      ResultInfo ri = res.getResultInfo();
+      ri.setDiagnostics(dl);
+      res.setResultInfo(ri);
       handler.handle(Future.succeededFuture(
         CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res)));
     }
