@@ -206,7 +206,7 @@ public class MuxTest {
       .statusCode(200).extract().response();
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(3, j.getInteger("totalRecords"));
+    context.assertEquals(3, j.getJsonObject("resultInfo").getInteger("totalRecords"));
 
     RestAssured.given()
       .header("X-Okapi-Module-ID", "mock1")
@@ -350,7 +350,7 @@ public class MuxTest {
       .statusCode(200).extract().response();
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(20, j.getInteger("totalRecords"));
+    context.assertEquals(20, j.getJsonObject("resultInfo").getInteger("totalRecords"));
 
     RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
@@ -461,7 +461,7 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(0, j.getInteger("totalRecords"));
+    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
 
     RestAssured.given()
       .header(tenantHeader)
@@ -520,7 +520,7 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(0, j.getInteger("totalRecords"));
+    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
 
     RestAssured.given()
       .header(tenantHeader)
@@ -541,7 +541,7 @@ public class MuxTest {
       .statusCode(200).extract().response();
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(3, j.getInteger("totalRecords"));
+    context.assertEquals(3, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     a = j.getJsonArray("instances");
     context.assertEquals(3, a.size());
     context.assertEquals("11224466", a.getJsonObject(0).getString("id"));
@@ -557,7 +557,7 @@ public class MuxTest {
       .statusCode(200).extract().response();
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(3, j.getInteger("totalRecords"));
+    context.assertEquals(3, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     assertInstanceIdsSorted(r, "73090924", "11224466", "11224467");
 
     enabledModules.add("mock2");
@@ -572,7 +572,7 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     assertInstanceIds(r, "10000000", "11224466", "10000001", "11224467", "10000002",
         "73090924", "10000003", "10000004", "10000005", "10000006");
 
@@ -609,7 +609,7 @@ public class MuxTest {
     b = r.getBody().asString();
     j = new JsonObject(b);
     a = j.getJsonArray("instances");
-    context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     context.assertEquals(8, a.size());
     context.assertEquals("10000012", a.getJsonObject(0).getString("id"));
     context.assertEquals("10000019", a.getJsonObject(7).getString("id"));
@@ -624,7 +624,7 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     a = j.getJsonArray("instances");
     context.assertEquals(10, a.size());
     context.assertEquals("73090924", a.getJsonObject(0).getString("id"));
@@ -643,7 +643,7 @@ public class MuxTest {
 
     b = r.getBody().asString();
     j = new JsonObject(b);
-    context.assertEquals(23, j.getInteger("totalRecords"));
+    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     a = j.getJsonArray("instances");
     context.assertEquals(10, a.size());
     context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
