@@ -1,3 +1,8 @@
+## 2.0.0 2018-01-09
+
+ * MODCXMUX-7 Return diagnostics in resultInfo . The module
+   now provides version 3.0 of the codex interface.
+
 ## 1.2.0 2017-12-20
 
  * MODCXMUX-4 / MODCXMUX-5 Ignore unsupported features (400 errors)
