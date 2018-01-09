@@ -269,6 +269,19 @@ public class MuxTest {
       .log().ifValidationFails()
       .statusCode(400);
 
+    // provoke syntax error and diagnostic
+    r = RestAssured.given()
+      .header("X-Okapi-Module-ID", "mock1")
+      .header(tenantHeader)
+      .get("/codex-instances?query=diag")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
+    context.assertEquals(a.size(), 1);
+
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")
       .header(tenantHeader)
@@ -689,6 +702,19 @@ public class MuxTest {
       .log().ifValidationFails()
       .statusCode(200);
 
+    // get diagnostic from both
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=diag")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+    a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
+    context.assertEquals(2, a.size());
   }
 
 }
