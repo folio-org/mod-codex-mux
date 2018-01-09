@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.core.Response;
 import org.folio.rest.jaxrs.model.Contributor;
+import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
@@ -113,6 +114,20 @@ public class Mock implements CodexInstancesResource {
     if (query != null) {
       CQLParser parser = new CQLParser(CQLParser.V1POINT2);
       CQLNode top = null;
+      boolean useDiagnostics = false;
+      if (query.startsWith("diag")) { // be able to return diagnostic
+        Diagnostic d = new Diagnostic();
+        d.setCode("unknown index");
+        d.setMessage("diag");
+        d.setSource(id);
+        InstanceCollection coll = new InstanceCollection();
+        ResultInfo resultInfo = new ResultInfo().withTotalRecords(0);
+        coll.setResultInfo(resultInfo);
+        resultInfo.getDiagnostics().add(d);
+        asyncResultHandler.handle(
+          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+        return;
+      }
       try {
         top = parser.parse(query);
       } catch (CQLParseException ex) {

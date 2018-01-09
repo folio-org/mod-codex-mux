@@ -186,13 +186,16 @@ public class Multiplexer implements CodexInstancesResource {
 
     int[] ptrs = new int[cols.size()]; // all 0
     int totalRecords = 0;
+    List<Diagnostic> diagnostics = new LinkedList<>();
     for (MuxCollection col : cols.values()) {
       if (col.col != null && col.col.getResultInfo() != null) {
         totalRecords += col.col.getResultInfo().getTotalRecords();
+        diagnostics.addAll(col.col.getResultInfo().getDiagnostics());
       }
     }
     InstanceCollection colR = new InstanceCollection();
     ResultInfo resultInfo = new ResultInfo().withTotalRecords(totalRecords);
+    resultInfo.setDiagnostics(diagnostics);
     colR.setResultInfo(resultInfo);
     int gOffset = 0;
     while (gOffset < offset + limit) {
