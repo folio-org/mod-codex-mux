@@ -114,7 +114,6 @@ public class Mock implements CodexInstancesResource {
     if (query != null) {
       CQLParser parser = new CQLParser(CQLParser.V1POINT2);
       CQLNode top = null;
-      boolean useDiagnostics = false;
       if (query.startsWith("diag")) { // be able to return diagnostic
         Diagnostic d = new Diagnostic();
         d.setCode("unknown index");
