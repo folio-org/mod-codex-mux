@@ -255,52 +255,23 @@ public class Multiplexer implements CodexInstancesResource {
 
     List<Diagnostic> dl = new LinkedList<>();
     int noSucceeded = 0;
-    int noFailed = 0;
-    int no500 = 0;
     for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
       MuxCollection mc = ent.getValue();
       Diagnostic d = new Diagnostic();
       d.setSource(ent.getKey());
       d.setCode(Integer.toString(mc.statusCode));
-      if (mc.statusCode == 200) {
-        noSucceeded++;
-      } else {
+      if (mc.statusCode != 200) {
         d.setMessage(mc.message.toString());
-        noFailed++;
-        if (mc.statusCode == 500) {
-          no500++;
-        }
         logger.warn("Module " + ent.getKey() + " returned status " + mc.statusCode);
         logger.warn(mc.message.toString());
       }
       dl.add(d);
     }
-    if (noFailed > 0 && (no500 > 0 || noSucceeded == 0)) {
-      Buffer msg = Buffer.buffer();
-      for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
-        MuxCollection mc = ent.getValue();
-        msg.appendString("Module " + ent.getKey() + " " + mc.statusCode + "\n");
-        msg.appendBuffer(mc.message);
-        msg.appendString("\n");
-      }
-      if (no500 > 0) {
-        // at least one source returned 500.. do the same here
-        handler.handle(
-          Future.succeededFuture(
-            CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(msg.toString())));
-      } else {
-        // most likely 400 errors .. do the same here
-        handler.handle(
-          Future.succeededFuture(
-            CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(msg.toString())));
-      }
-    } else {
       ResultInfo ri = res.getResultInfo();
       ri.setDiagnostics(dl);
       res.setResultInfo(ri);
       handler.handle(Future.succeededFuture(
         CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res)));
-    }
   }
 
   private CQLNode filterSource(String mod, CQLNode top) {
