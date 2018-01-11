@@ -41,6 +41,9 @@ public class CQLUtilTest {
     assertFalse(eval("(source=foo or source=bar) and x"));
     assertFalse(eval("a and source=x sortby title"));
     assertTrue(eval("(a and source=x) or (b and source=kb) sortby title"));
+    assertTrue(eval("a not b"));
+    assertTrue(eval("source=kb and a not b"));
+    assertFalse(eval("source=x and a not b"));
   }
 
   private String reduce(String input) {

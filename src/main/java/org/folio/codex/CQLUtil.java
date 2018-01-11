@@ -30,7 +30,7 @@ public class CQLUtil {
         case OR:
           return eval(n1.getLeftOperand(), tn, cmp) || eval(n1.getRightOperand(), tn, cmp);
         case NOT:
-          return eval(n1.getLeftOperand(), tn, cmp) && !eval(n1.getRightOperand(), tn, cmp);
+          return eval(n1.getLeftOperand(), tn, cmp);
         default:
           throw new IllegalArgumentException("unknown operator for CQLBooleanNode: " + n1.getOperator());
       }
