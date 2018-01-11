@@ -715,6 +715,42 @@ public class MuxTest {
     context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
     context.assertEquals(2, a.size());
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo and source=mock1 sortby id")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(3, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo and source=mock2 sortby id")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(20, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo and source=mock3 sortby id")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
   }
 
 }

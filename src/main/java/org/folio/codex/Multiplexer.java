@@ -31,8 +31,11 @@ import org.folio.rest.jaxrs.resource.CodexInstancesResource;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
+import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLSortNode;
+import org.z3950.zing.cql.CQLTermNode;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class Multiplexer implements CodexInstancesResource {
 
   class MuxCollection {
@@ -161,15 +164,24 @@ public class Multiplexer implements CodexInstancesResource {
     });
   }
 
-  private void mergeSort(List<String> modules, String query, int offset, int limit,
+  private void mergeSort(List<String> modules, CQLNode top, int offset, int limit,
     Comparator<Instance> comp, LHeaders h, Context vertxContext,
     Map<String, MuxCollection> cols, Handler<AsyncResult<InstanceCollection>> handler) {
 
     List<Future> futures = new LinkedList<>();
     for (String m : modules) {
-      Future fut = Future.future();
-      getByQuery(m, vertxContext, query, 0, offset + limit, h, cols, fut);
-      futures.add(fut);
+      if (top == null) {
+        Future fut = Future.future();
+        getByQuery(m, vertxContext, null, 0, offset + limit, h, cols, fut);
+        futures.add(fut);
+      } else {
+        CQLNode n = filterSource(m, top);
+        if (n != null) {
+          Future fut = Future.future();
+          getByQuery(m, vertxContext, n.toCQL(), 0, offset + limit, h, cols, fut);
+          futures.add(fut);
+        }
+      }
     }
     CompositeFuture.all(futures).setHandler(res2 -> {
       if (res2.failed()) {
@@ -291,6 +303,36 @@ public class Multiplexer implements CodexInstancesResource {
     }
   }
 
+  private CQLNode filterSource(String mod, CQLNode top) {
+    CQLRelation rel = new CQLRelation("=");
+    Comparator<CQLTermNode> f1 = (CQLTermNode n1, CQLTermNode n2) -> {
+      if (n1.getIndex().equals(n2.getIndex()) && !n1.getTerm().equals(n2.getTerm())) {
+        return -1;
+      }
+      return 0;
+    };
+    Comparator<CQLTermNode> f2 = (CQLTermNode n1, CQLTermNode n2)
+      -> n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
+    CQLTermNode source = null;
+    if (mod.startsWith("mod-codex-ekb")) {
+      source = new CQLTermNode("source", rel, "kb");
+    } else if (mod.startsWith("mod-codex-inventory")) {
+      source = new CQLTermNode("source", rel, "local");
+    } else if (mod.startsWith("mock")) { // for Unit testing
+      source = new CQLTermNode("source", rel, mod);
+    }
+    if (source == null) {
+      return top;
+    } else {
+      if (!CQLUtil.eval(top, source, f1)) {
+        logger.info("Filter out module " + mod);
+        return null;
+      }
+      logger.info("Reducing query for module " + mod);
+      return CQLUtil.reducer(top, source, f2);
+    }
+  }
+
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
@@ -303,9 +345,9 @@ public class Multiplexer implements CodexInstancesResource {
           CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
       } else {
         Comparator<Instance> comp = null;
+        CQLNode top = null;
         if (query != null) {
           CQLParser parser = new CQLParser(CQLParser.V1POINT2);
-          CQLNode top = null;
           try {
             top = parser.parse(query);
           } catch (CQLParseException ex) {
@@ -331,7 +373,7 @@ public class Multiplexer implements CodexInstancesResource {
           }
         }
         Map<String, MuxCollection> cols = new LinkedHashMap<>();
-        mergeSort(res.result(), query, offset, limit, comp, h, vertxContext, cols, res2 -> {
+        mergeSort(res.result(), top, offset, limit, comp, h, vertxContext, cols, res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
               CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
