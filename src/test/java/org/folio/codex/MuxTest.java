@@ -679,10 +679,12 @@ public class MuxTest {
       .get("/codex-instances?query=mock")
       .then()
       .log().ifValidationFails()
-      .statusCode(400).extract().response();
-    assertThat(r.getBody().asString(), allOf(
-        containsString("Module mock1 400\nprovoked unsupported mock"),
-        containsString("Module mock2 400\nprovoked unsupported mock") ));
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+    a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
+    context.assertEquals(2, a.size());
 
     // only mock1 will work
     RestAssured.given()
