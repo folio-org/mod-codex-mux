@@ -715,6 +715,18 @@ public class MuxTest {
     context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
     a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
     context.assertEquals(2, a.size());
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances?query=foo and source=x sortby id")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+
+    b = r.getBody().asString();
+    j = new JsonObject(b);
+    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
   }
 
 }
