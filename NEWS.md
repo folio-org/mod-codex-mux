@@ -1,3 +1,7 @@
+## 2.1.2 2018-01-11
+
+ * MODCXMUX-16 Use resultInfo.diagnostics for all errors
+
 ## 2.1.1 2018-01-11
  
  * MODCXMUX-13 Filter sources in mux for modules that can not do it
