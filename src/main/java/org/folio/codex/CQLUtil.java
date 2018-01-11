@@ -16,6 +16,9 @@ import org.z3950.zing.cql.Modifier;
 import org.z3950.zing.cql.ModifierSet;
 
 public class CQLUtil {
+  private CQLUtil() {
+    throw new IllegalStateException("CQLUtil");
+  }
 
   public static boolean eval(CQLNode vn1, CQLTermNode tn, Comparator<CQLTermNode> cmp) {
     if (vn1 instanceof CQLBooleanNode) {

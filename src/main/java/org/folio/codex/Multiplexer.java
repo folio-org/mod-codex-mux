@@ -35,6 +35,7 @@ import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLSortNode;
 import org.z3950.zing.cql.CQLTermNode;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class Multiplexer implements CodexInstancesResource {
 
   class MuxCollection {
@@ -310,9 +311,8 @@ public class Multiplexer implements CodexInstancesResource {
       }
       return 0;
     };
-    Comparator<CQLTermNode> f2 = (CQLTermNode n1, CQLTermNode n2) -> {
-      return n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
-    };
+    Comparator<CQLTermNode> f2 = (CQLTermNode n1, CQLTermNode n2)
+      -> n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
     CQLTermNode source = null;
     if (mod.startsWith("mod-codex-ekb")) {
       source = new CQLTermNode("source", rel, "kb");
