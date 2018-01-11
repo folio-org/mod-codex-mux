@@ -1,6 +1,10 @@
+## 2.1.1 2018-01-11
+ 
+ * MODCXMUX-13 Filter sources in mux for modules that can not do it
+
 ## 2.1.0 2018-01-11
 
- * MODCXMUX-13 Filter sources in mux for modules that can not do it
+ * This release was almost identical to 2.0.0 (MODCXMUX-13 fix not part of it)
 
 ## 2.0.0 2018-01-09
 
