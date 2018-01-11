@@ -302,7 +302,7 @@ public class Multiplexer implements CodexInstancesResource {
     }
   }
 
-  CQLNode filterSource(String mod, CQLNode top) {
+  private CQLNode filterSource(String mod, CQLNode top) {
     CQLRelation rel = new CQLRelation("=");
     Comparator<CQLTermNode> f1 = (CQLTermNode n1, CQLTermNode n2) -> {
       if (n1.getIndex().equals(n2.getIndex()) && !n1.getTerm().equals(n2.getTerm())) {
