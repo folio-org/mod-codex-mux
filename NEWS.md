@@ -1,3 +1,7 @@
+## 2.1.0 2018-01-11
+
+ * MODCXMUX-13 Filter sources in mux for modules that can not do it
+
 ## 2.0.0 2018-01-09
 
  * MODCXMUX-7 Return diagnostics in resultInfo . The module
