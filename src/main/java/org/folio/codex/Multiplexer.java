@@ -318,13 +318,17 @@ public class Multiplexer implements CodexInstancesResource {
       source = new CQLTermNode("source", rel, "kb");
     } else if (mod.startsWith("mod-codex-inventory")) {
       source = new CQLTermNode("source", rel, "local");
+    } else if (mod.startsWith("mock")) { // for Unit testing
+      source = new CQLTermNode("source", rel, mod);
     }
     if (source == null) {
       return top;
     } else {
       if (!CQLUtil.eval(top, source, f1)) {
+        logger.info("Filter out module " + mod);
         return null;
       }
+      logger.info("Reducing query for module " + mod);
       return CQLUtil.reducer(top, source, f2);
     }
   }
