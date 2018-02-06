@@ -74,5 +74,17 @@ public class CQLUtilTest {
     assertEquals("(a) and (b)", reduce("(a and source=x or source=y) and b"));
     assertEquals("(a) and (b)", reduce("a and source=x or source=y and b"));
     assertEquals("a sortby title", reduce("source=x and a sortby title"));
+    assertEquals("null", reduce("source=x"));
+    assertEquals("null", reduce("source=x sortby title"));
+    assertEquals("(a) not (b)", reduce("a not b"));
+    assertEquals("a", reduce("a not source=x"));
+    assertEquals("a", reduce("source=x not a"));
+    assertEquals("null", reduce("source=x not source=y"));
+    assertEquals("(a) prox/distance = 1 (b)", reduce("a prox/distance=1 b"));
+    assertEquals("a", reduce("a prox/distance=1 source=x"));
+    assertEquals("a", reduce("source=x prox/distance=1 a"));
+    assertEquals("null", reduce("source=x prox/distance=1 source=y"));
+    assertEquals(">dc=\"xx\" (a)", reduce(">dc = \"xx\" a"));
+    assertEquals("null", reduce(">dc = \"xx\" source=x"));
   }
 }
