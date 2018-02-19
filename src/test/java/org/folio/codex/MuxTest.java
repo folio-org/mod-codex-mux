@@ -8,6 +8,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -21,16 +22,18 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.folio.rest.RestVerticle;
+import org.folio.rest.jaxrs.model.Diagnostic;
+import org.folio.rest.jaxrs.model.Instance;
+import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.junit.Test;
 
 @RunWith(VertxUnitRunner.class)
@@ -443,6 +446,8 @@ public class MuxTest {
 
   @Test
   public void testMutex(TestContext context) {
+    InstanceCollection col;
+    List<Diagnostic> diags;
     Response r;
     String b;
     JsonObject j;
@@ -655,13 +660,18 @@ public class MuxTest {
       .statusCode(200).extract().response();
 
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(23, j.getJsonObject("resultInfo").getInteger("totalRecords"));
-    a = j.getJsonArray("instances");
-    context.assertEquals(10, a.size());
-    context.assertEquals("10000000", a.getJsonObject(0).getString("id"));
-    context.assertEquals("10000001", a.getJsonObject(1).getString("id"));
-    context.assertEquals("10000009", a.getJsonObject(9).getString("id"));
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(23, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(2, diags.size());
+    context.assertEquals(3, diags.get(0).getRecordCount());
+    context.assertEquals(20, diags.get(1).getRecordCount());
+
+    List<Instance> instances = col.getInstances();
+    context.assertEquals(10, instances.size());
+    context.assertEquals("10000000", instances.get(0).getId());
+    context.assertEquals("10000001", instances.get(1).getId());
+    context.assertEquals("10000009", instances.get(9).getId());
 
     // bad X-Okapi-Url
     RestAssured.given()
@@ -681,10 +691,11 @@ public class MuxTest {
       .log().ifValidationFails()
       .statusCode(200).extract().response();
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
-    a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
-    context.assertEquals(2, a.size());
+
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(0, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(2, diags.size());
 
     // only mock1 will work
     RestAssured.given()
@@ -713,10 +724,14 @@ public class MuxTest {
       .log().ifValidationFails()
       .statusCode(200).extract().response();
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
-    a = j.getJsonObject("resultInfo").getJsonArray("diagnostics");
-    context.assertEquals(2, a.size());
+
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(0, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(2, diags.size());
+    context.assertEquals("mock1", diags.get(0).getSource());
+    context.assertEquals("mock2", diags.get(1).getSource());
+    context.assertEquals(0, diags.get(0).getRecordCount());
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -727,8 +742,14 @@ public class MuxTest {
       .statusCode(200).extract().response();
 
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(3, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(3, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(1, diags.size());
+    context.assertEquals("mock1", diags.get(0).getSource());
+    context.assertEquals(3, diags.get(0).getRecordCount());
+    context.assertEquals("foo sortby id", diags.get(0).getQuery());
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -739,8 +760,14 @@ public class MuxTest {
       .statusCode(200).extract().response();
 
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(20, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(20, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(1, diags.size());
+    context.assertEquals("mock2", diags.get(0).getSource());
+    context.assertEquals(20, diags.get(0).getRecordCount());
+    context.assertEquals("foo sortby id", diags.get(0).getQuery());
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -751,8 +778,11 @@ public class MuxTest {
       .statusCode(200).extract().response();
 
     b = r.getBody().asString();
-    j = new JsonObject(b);
-    context.assertEquals(0, j.getJsonObject("resultInfo").getInteger("totalRecords"));
+
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(0, col.getResultInfo().getTotalRecords());
+    diags = col.getResultInfo().getDiagnostics();
+    context.assertEquals(0, diags.size());
   }
 
 }

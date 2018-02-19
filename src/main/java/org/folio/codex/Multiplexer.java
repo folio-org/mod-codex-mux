@@ -42,6 +42,7 @@ public class Multiplexer implements CodexInstancesResource {
     int statusCode;
     Buffer message;
     InstanceCollection col;
+    String query;
   }
 
   private static Logger logger = LoggerFactory.getLogger("codex.mux");
@@ -153,6 +154,7 @@ public class Multiplexer implements CodexInstancesResource {
               j.put("resultInfo", ri);
             }
             mc.col = Json.decodeValue(j.encode(), InstanceCollection.class);
+            mc.query = query;
           } catch (Exception e) {
             fut.handle(Future.failedFuture(e));
             return;
@@ -260,6 +262,10 @@ public class Multiplexer implements CodexInstancesResource {
       Diagnostic d = new Diagnostic();
       d.setSource(ent.getKey());
       d.setCode(Integer.toString(mc.statusCode));
+      if (mc.col != null) {
+        d.setRecordCount(mc.col.getResultInfo().getTotalRecords());
+      }
+      d.setQuery(mc.query);
       if (mc.statusCode != 200) {
         d.setMessage(mc.message.toString());
         logger.warn("Module " + ent.getKey() + " returned status " + mc.statusCode);
