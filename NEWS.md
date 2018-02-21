@@ -1,3 +1,9 @@
+## 2.2.0 2018-02-21
+
+ * MODCXMUX-19 Move CQLUtil to okapi-common
+ * MODCXMUX-14 Per-source record-counts, rewritten query
+ * MODCXMUX-8 Report module version on start
+
 ## 2.1.2 2018-01-11
 
  * MODCXMUX-16 Use resultInfo.diagnostics for all errors
