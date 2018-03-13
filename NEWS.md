@@ -1,3 +1,7 @@
+## 2.2.1 2018-03-13
+
+ * MODCXMUV-20 Update to RMB 19.0.0
+
 ## 2.2.0 2018-02-21
 
  * MODCXMUX-19 Move CQLUtil to okapi-common
