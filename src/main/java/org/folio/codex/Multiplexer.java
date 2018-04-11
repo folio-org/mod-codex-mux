@@ -225,25 +225,18 @@ public class Multiplexer implements CodexInstancesResource {
         if (col.col != null) {
           List<Instance> instances = col.col.getInstances();
           if (idx < instances.size()) {
-            if (comp == null) { // round-robin
-              if (minI == -1 || ptrs[minI] > ptrs[i]) {
-                Instance instance = instances.get(idx);
-                minI = i;
-                minInstance = instance;
-              }
-            } else {
-              Instance instance = instances.get(idx);
-              if (minInstance == null
-                || comp.compare(minInstance, instance) > 0) {
-                minI = i;
-                minInstance = instance;
-              }
+            Instance instance = instances.get(idx);
+            if (minInstance == null
+              || (comp == null && ptrs[minI] > ptrs[i])
+              || (comp != null && comp.compare(minInstance, instance) > 0)) {
+              minI = i;
+              minInstance = instance;
             }
           }
         }
         i++;
       }
-      if (minI == -1) {
+      if (minInstance == null) {
         break;
       }
       ptrs[minI]++;
