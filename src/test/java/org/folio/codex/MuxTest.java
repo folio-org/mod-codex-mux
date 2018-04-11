@@ -783,6 +783,18 @@ public class MuxTest {
     context.assertEquals(0, col.getResultInfo().getTotalRecords());
     diags = col.getResultInfo().getDiagnostics();
     context.assertEquals(0, diags.size());
+
+    r = RestAssured.given()
+      .header(tenantHeader)
+      .header(urlHeader)
+      .get("/codex-instances")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200).extract().response();
+    b = r.getBody().asString();
+    col = Json.decodeValue(b, InstanceCollection.class);
+    context.assertEquals(23, col.getResultInfo().getTotalRecords());
+
   }
 
 }
