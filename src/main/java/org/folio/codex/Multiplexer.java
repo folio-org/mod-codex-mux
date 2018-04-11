@@ -216,8 +216,7 @@ public class Multiplexer implements CodexInstancesResource {
     InstanceCollection colR = new InstanceCollection();
     colR.setResultInfo(createResultInfo(cols));
     int[] ptrs = new int[cols.size()]; // all 0
-    int gOffset = 0;
-    while (gOffset < offset + limit) {
+    for (int gOffset = 0; gOffset < offset + limit; gOffset++) {
       Instance minInstance = null;
       int minI = -1;
       int i = 0;
@@ -246,12 +245,10 @@ public class Multiplexer implements CodexInstancesResource {
       }
       if (minI == -1) {
         break;
-      } else {
-        ptrs[minI]++;
-        if (gOffset >= offset) {
-          colR.getInstances().add(minInstance);
-        }
-        gOffset++;
+      }
+      ptrs[minI]++;
+      if (gOffset >= offset) {
+        colR.getInstances().add(minInstance);
       }
     }
     return colR;
