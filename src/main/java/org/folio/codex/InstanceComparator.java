@@ -14,6 +14,13 @@ public class InstanceComparator {
     throw new IllegalStateException("InstanceComparator");
   }
 
+  private static int cmp(String i1, String i2, boolean fReverse) {
+    final String s1 = i1 != null ? i1 : "";
+    final String s2 = i2 != null ? i2 : "";
+    final int r = s1.compareToIgnoreCase(s2);
+    return fReverse ? -r : r;
+  }
+
   static Comparator<Instance> get(CQLSortNode sn) {
     Comparator<Instance> comp = null;
     Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
@@ -31,24 +38,15 @@ public class InstanceComparator {
 
       if ("title".equals(index)) {
         comp = (Instance i1, Instance i2) -> {
-          String s1 = i1.getTitle() != null ? i1.getTitle() : "";
-          String s2 = i1.getTitle() != null ? i2.getTitle() : "";
-          int r = s1.compareToIgnoreCase(s2);
-          return fReverse ? -r : r;
+          return cmp(i1.getTitle(), i2.getTitle(), fReverse);
         };
       } else if ("date".equals(index)) {
         comp = (Instance i1, Instance i2) -> {
-          String s1 = i1.getDate() != null ? i1.getDate() : "";
-          String s2 = i1.getDate() != null ? i2.getDate() : "";
-          int r = s1.compareToIgnoreCase(s2);
-          return fReverse ? -r : r;
+          return cmp(i1.getDate(), i2.getDate(), fReverse);
         };
       } else if ("id".equals(index)) {
         comp = (Instance i1, Instance i2) -> {
-          String s1 = i1.getId() != null ? i1.getId() : "";
-          String s2 = i1.getId() != null ? i2.getId() : "";
-          int r = s1.compareToIgnoreCase(s2);
-          return fReverse ? -r : r;
+          return cmp(i1.getId(), i2.getId(), fReverse);
         };
       } else {
         throw (new IllegalArgumentException("unsupported sort index " + index));

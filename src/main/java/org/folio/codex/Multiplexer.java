@@ -196,10 +196,7 @@ public class Multiplexer implements CodexInstancesResource {
     });
   }
 
-  private InstanceCollection mergeSet2(Map<String, MuxCollection> cols,
-    int offset, int limit, Comparator<Instance> comp) {
-
-    int[] ptrs = new int[cols.size()]; // all 0
+  private ResultInfo createResultInfo(Map<String, MuxCollection> cols) {
     int totalRecords = 0;
     List<Diagnostic> diagnostics = new LinkedList<>();
     for (MuxCollection col : cols.values()) {
@@ -208,10 +205,17 @@ public class Multiplexer implements CodexInstancesResource {
         diagnostics.addAll(col.col.getResultInfo().getDiagnostics());
       }
     }
-    InstanceCollection colR = new InstanceCollection();
     ResultInfo resultInfo = new ResultInfo().withTotalRecords(totalRecords);
     resultInfo.setDiagnostics(diagnostics);
-    colR.setResultInfo(resultInfo);
+    return resultInfo;
+  }
+
+  private InstanceCollection mergeSet2(Map<String, MuxCollection> cols,
+    int offset, int limit, Comparator<Instance> comp) {
+
+    InstanceCollection colR = new InstanceCollection();
+    colR.setResultInfo(createResultInfo(cols));
+    int[] ptrs = new int[cols.size()]; // all 0
     int gOffset = 0;
     while (gOffset < offset + limit) {
       Instance minInstance = null;
@@ -257,7 +261,6 @@ public class Multiplexer implements CodexInstancesResource {
     Handler<AsyncResult<Response>> handler) {
 
     List<Diagnostic> dl = new LinkedList<>();
-    int noSucceeded = 0;
     for (Map.Entry<String, MuxCollection> ent : cols.entrySet()) {
       MuxCollection mc = ent.getValue();
       Diagnostic d = new Diagnostic();
