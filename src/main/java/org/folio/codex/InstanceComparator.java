@@ -37,17 +37,14 @@ public class InstanceComparator {
       final String index = s.getBase();
 
       if ("title".equals(index)) {
-        comp = (Instance i1, Instance i2) -> {
-          return cmp(i1.getTitle(), i2.getTitle(), fReverse);
-        };
+        comp = (Instance i1, Instance i2)
+          -> cmp(i1.getTitle(), i2.getTitle(), fReverse);
       } else if ("date".equals(index)) {
-        comp = (Instance i1, Instance i2) -> {
-          return cmp(i1.getDate(), i2.getDate(), fReverse);
-        };
+        comp = (Instance i1, Instance i2)
+          -> cmp(i1.getDate(), i2.getDate(), fReverse);
       } else if ("id".equals(index)) {
-        comp = (Instance i1, Instance i2) -> {
-          return cmp(i1.getId(), i2.getId(), fReverse);
-        };
+        comp = (Instance i1, Instance i2)
+          -> cmp(i1.getId(), i2.getId(), fReverse);
       } else {
         throw (new IllegalArgumentException("unsupported sort index " + index));
       }
