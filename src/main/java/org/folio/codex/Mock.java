@@ -36,35 +36,30 @@ public class Mock implements CodexInstancesResource {
 
   private String id;
 
+  private Instance createHowToProgramAComputer() {
+    Instance e = new Instance();
+    e.setTitle("How to program a computer");
+    e.setPublisher("Penguin");
+    Set<Contributor> cs = new LinkedHashSet<>();
+    Contributor c = new Contributor();
+    c.setName("Jack Collins");
+    c.setType("Personal name");
+    cs.add(c);
+    e.setContributor(cs);
+    e.setDate("1991");
+    return e;
+  }
   public Mock(String id) {
     this.id = id;
     logger.info("Mock " + id + " starting");
     if (id.equals("mock1")) {
       {
-        Instance e = new Instance();
-        e.setTitle("How to program a computer");
-        e.setPublisher("Penguin");
-        Set<Contributor> cs = new LinkedHashSet<>();
-        Contributor c = new Contributor();
-        c.setName("Jack Collins");
-        c.setType("Personal name");
-        cs.add(c);
-        e.setContributor(cs);
-        e.setDate("1991");
+        Instance e = createHowToProgramAComputer();
         e.setId("11224466");
         mInstances.add(e);
       }
       {
-        Instance e = new Instance();
-        e.setTitle("How to program a computer");
-        e.setPublisher("Penguin");
-        Set<Contributor> cs = new LinkedHashSet<>();
-        Contributor c = new Contributor();
-        c.setName("Jack Collins");
-        c.setType("Personal name");
-        cs.add(c);
-        e.setContributor(cs);
-        e.setDate("1991");
+        Instance e = createHowToProgramAComputer();
         e.setId("11224467");
         mInstances.add(e);
       }
