@@ -22,13 +22,13 @@ public class CodexMuxImpl implements CodexInstancesResource {
 
   private static CodexInstancesResource get(Map<String, String> okapiHeaders) {
     final String module = okapiHeaders.get(XOkapiHeaders.MODULE_ID.toLowerCase());
-    logger.info("Impl get module = " + module);
     if (module == null) {
       if (mux == null) {
         mux = new Multiplexer();
       }
       return mux;
     } else {
+      logger.info("Impl get module = " + module);
       if (!mock.containsKey(module)) {
         mock.put(module, new Mock(module));
       }
