@@ -39,6 +39,14 @@ import org.z3950.zing.cql.CQLTermNode;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class Multiplexer implements CodexInstancesResource {
 
+  class MergeRequest {
+    int offset;
+    int limit;
+    LHeaders headers;
+    Context vertxContext;
+    Map<String, MuxCollection> cols;
+  };
+
   class MuxCollection {
     int statusCode;
     Buffer message;
@@ -122,12 +130,11 @@ public class Multiplexer implements CodexInstancesResource {
     req.end();
   }
 
-  private void getByQuery(String module, Context vertxContext, String query,
-    int offset, int limit, LHeaders okapiHeaders, Map<String, MuxCollection> cols,
-    Handler<AsyncResult<Void>> fut) {
+  private void getByQuery(String module, MergeRequest mq, String query,
+    int offset, int limit, Handler<AsyncResult<Void>> fut) {
 
-    HttpClient client = vertxContext.owner().createHttpClient();
-    String url = okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances?"
+    HttpClient client = mq.vertxContext.owner().createHttpClient();
+    String url = mq.headers.get(XOkapiHeaders.URL) + "/codex-instances?"
       + "offset=" + offset + "&limit=" + limit;
     try {
       if (query != null) {
@@ -138,7 +145,7 @@ public class Multiplexer implements CodexInstancesResource {
       return;
     }
     logger.info("getByQuery url=" + url);
-    getUrl(module, url, client, okapiHeaders, res -> {
+    getUrl(module, url, client, mq.headers, res -> {
       if (res.failed()) {
         logger.warn("getByQuery. getUrl failed " + res.cause());
         fut.handle(Future.failedFuture(res.cause()));
@@ -161,27 +168,26 @@ public class Multiplexer implements CodexInstancesResource {
             return;
           }
         }
-        cols.put(module, mc);
+        mq.cols.put(module, mc);
         fut.handle(Future.succeededFuture());
       }
     });
   }
 
-  private void mergeSort(List<String> modules, CQLNode top, int offset, int limit,
-    Comparator<Instance> comp, LHeaders h, Context vertxContext,
-    Map<String, MuxCollection> cols, Handler<AsyncResult<InstanceCollection>> handler) {
+  private void mergeSort(List<String> modules, CQLNode top, MergeRequest mq,
+    Comparator<Instance> comp, Handler<AsyncResult<InstanceCollection>> handler) {
 
     List<Future> futures = new LinkedList<>();
     for (String m : modules) {
       if (top == null) {
         Future fut = Future.future();
-        getByQuery(m, vertxContext, null, 0, offset + limit, h, cols, fut);
+        getByQuery(m, mq, null, 0, mq.offset + mq.limit, fut);
         futures.add(fut);
       } else {
         CQLNode n = filterSource(m, top);
         if (n != null) {
           Future fut = Future.future();
-          getByQuery(m, vertxContext, n.toCQL(), 0, offset + limit, h, cols, fut);
+          getByQuery(m, mq, n.toCQL(), 0, mq.offset + mq.limit, fut);
           futures.add(fut);
         }
       }
@@ -190,7 +196,7 @@ public class Multiplexer implements CodexInstancesResource {
       if (res2.failed()) {
         handler.handle(Future.failedFuture(res2.cause()));
       } else {
-        InstanceCollection colR = mergeSet2(cols, offset, limit, comp);
+        InstanceCollection colR = mergeSet2(mq, comp);
         handler.handle(Future.succeededFuture(colR));
       }
     });
@@ -210,17 +216,16 @@ public class Multiplexer implements CodexInstancesResource {
     return resultInfo;
   }
 
-  private InstanceCollection mergeSet2(Map<String, MuxCollection> cols,
-    int offset, int limit, Comparator<Instance> comp) {
+  private InstanceCollection mergeSet2(MergeRequest mq, Comparator<Instance> comp) {
 
     InstanceCollection colR = new InstanceCollection();
-    colR.setResultInfo(createResultInfo(cols));
-    int[] ptrs = new int[cols.size()]; // all 0
-    for (int gOffset = 0; gOffset < offset + limit; gOffset++) {
+    colR.setResultInfo(createResultInfo(mq.cols));
+    int[] ptrs = new int[mq.cols.size()]; // all 0
+    for (int gOffset = 0; gOffset < mq.offset + mq.limit; gOffset++) {
       Instance minInstance = null;
       int minI = -1;
       int i = 0;
-      for (MuxCollection col : cols.values()) {
+      for (MuxCollection col : mq.cols.values()) {
         int idx = ptrs[i];
         if (col.col != null) {
           List<Instance> instances = col.col.getInstances();
@@ -240,7 +245,7 @@ public class Multiplexer implements CodexInstancesResource {
         break;
       }
       ptrs[minI]++;
-      if (gOffset >= offset) {
+      if (gOffset >= mq.offset) {
         colR.getInstances().add(minInstance);
       }
     }
@@ -343,14 +348,19 @@ public class Multiplexer implements CodexInstancesResource {
             }
           }
         }
-        Map<String, MuxCollection> cols = new LinkedHashMap<>();
-        mergeSort(res.result(), top, offset, limit, comp, h, vertxContext, cols, res2 -> {
+        MergeRequest mq = new MergeRequest();
+        mq.cols = new LinkedHashMap<>();
+        mq.offset = offset;
+        mq.limit = limit;
+        mq.vertxContext = vertxContext;
+        mq.headers = h;
+        mergeSort(res.result(), top, mq, comp, res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
               CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
             );
           } else {
-            analyzeResult(cols, res2.result(), handler);
+            analyzeResult(mq.cols, res2.result(), handler);
           }
         });
       }
