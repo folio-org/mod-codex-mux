@@ -45,7 +45,7 @@ public class Multiplexer implements CodexInstancesResource {
     LHeaders headers;
     Context vertxContext;
     Map<String, MuxCollection> cols;
-  };
+  }
 
   class MuxCollection {
     int statusCode;
