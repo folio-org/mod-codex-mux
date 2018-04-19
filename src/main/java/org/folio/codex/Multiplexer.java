@@ -59,7 +59,6 @@ public class Multiplexer implements CodexInstancesResource {
   void getModules(LHeaders okapiHeaders, Context vertxContext,
     Handler<AsyncResult<List<String>>> fut) {
 
-    logger.info("codex.mux getModules");
     final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
     if (okapiUrl == null) {
       fut.handle(Future.failedFuture("missing " + XOkapiHeaders.URL));
@@ -69,6 +68,7 @@ public class Multiplexer implements CodexInstancesResource {
 
     HttpClient client = vertxContext.owner().createHttpClient();
     final String absUrl = okapiUrl + "/_/proxy/tenants/" + tenant + "/interfaces/codex";
+    logger.info("codex.mux getModules url=" + absUrl);
     HttpClientRequest req = client.getAbs(absUrl, res -> {
       if (res.statusCode() != 200) {
         client.close();
