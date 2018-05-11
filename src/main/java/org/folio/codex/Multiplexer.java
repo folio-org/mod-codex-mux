@@ -8,6 +8,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -79,18 +80,25 @@ public class Multiplexer implements CodexInstancesResource {
       res.handler(b::appendBuffer);
       res.endHandler(r -> {
         logger.info("codex.mux getModules got " + b.toString());
-        List<String> l = new LinkedList<>();
-
-        JsonArray a = b.toJsonArray();
-        for (int i = 0; i < a.size(); i++) {
-          JsonObject j = a.getJsonObject(i);
-          String m = j.getString("id");
-          if (!m.startsWith("mod-codex-mux")) { // avoid returning self
-            l.add(m);
-          }
-        }
         client.close();
-        fut.handle(Future.succeededFuture(l));
+        List<String> l = new LinkedList<>();
+        JsonArray a = null;
+        try {
+          a = b.toJsonArray();
+        } catch (DecodeException ex) {
+          logger.warn(ex.getMessage());
+          fut.handle(Future.failedFuture(ex.getMessage()));
+        }
+        if (a != null) {
+          for (int i = 0; i < a.size(); i++) {
+            JsonObject j = a.getJsonObject(i);
+            String m = j.getString("id");
+            if (!m.startsWith("mod-codex-mux")) { // avoid returning self
+              l.add(m);
+            }
+          }
+          fut.handle(Future.succeededFuture(l));
+        }
       });
     });
     for (Map.Entry<String, String> e : okapiHeaders.entrySet()) {
