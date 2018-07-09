@@ -13,7 +13,7 @@
  * MODCXMUX-16 Use resultInfo.diagnostics for all errors
 
 ## 2.1.1 2018-01-11
- 
+
  * MODCXMUX-13 Filter sources in mux for modules that can not do it
 
 ## 2.1.0 2018-01-11
@@ -22,7 +22,7 @@
 
 ## 2.0.0 2018-01-09
 
- * MODCXMUX-7 Return diagnostics in resultInfo . The module
+ * MODCXMUX-7 Return diagnostics in resultInfo. The module
    now provides version 3.0 of the codex interface.
 
 ## 1.2.0 2017-12-20
