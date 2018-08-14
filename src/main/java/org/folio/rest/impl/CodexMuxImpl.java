@@ -11,16 +11,17 @@ import javax.ws.rs.core.Response;
 import org.folio.codex.Mock;
 import org.folio.codex.Multiplexer;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.rest.jaxrs.resource.CodexInstancesResource;
+import org.folio.rest.jaxrs.model.InstanceCollection;
+import org.folio.rest.jaxrs.resource.CodexInstances;
 
-public class CodexMuxImpl implements CodexInstancesResource {
+public class CodexMuxImpl implements CodexInstances {
 
-  private static CodexInstancesResource mux;
-  private static Map<String, CodexInstancesResource> mock = new HashMap<>();
+  private static CodexInstances mux;
+  private static Map<String, CodexInstances> mock = new HashMap<>();
   private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
 
-  private static CodexInstancesResource get(Map<String, String> okapiHeaders) {
+  private static CodexInstances get(Map<String, String> okapiHeaders) {
     final String module = okapiHeaders.get(XOkapiHeaders.MODULE_ID.toLowerCase());
     if (module == null) {
       if (mux == null) {
@@ -39,7 +40,7 @@ public class CodexMuxImpl implements CodexInstancesResource {
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
-    Context vertxContext) throws Exception {
+    Context vertxContext) {
 
     get(okapiHeaders).getCodexInstances(query, offset, limit, lang,
       okapiHeaders, asyncResultHandler, vertxContext);
@@ -48,7 +49,7 @@ public class CodexMuxImpl implements CodexInstancesResource {
   @Override
   public void getCodexInstancesById(String id, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
-    Context vertxContext) throws Exception {
+    Context vertxContext) {
 
     get(okapiHeaders).getCodexInstancesById(id, lang,
       okapiHeaders, asyncResultHandler, vertxContext);

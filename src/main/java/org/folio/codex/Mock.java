@@ -21,14 +21,14 @@ import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
-import org.folio.rest.jaxrs.resource.CodexInstancesResource;
+import org.folio.rest.jaxrs.resource.CodexInstances;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
 import org.z3950.zing.cql.CQLSortNode;
 
 @java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
-public class Mock implements CodexInstancesResource {
+public class Mock implements CodexInstances {
 
   private static Logger logger = LoggerFactory.getLogger("codex.mock");
 
@@ -103,7 +103,7 @@ public class Mock implements CodexInstancesResource {
   }
 
   @Override
-  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     List<Instance> iInstances = new LinkedList<>();
     iInstances.addAll(mInstances);
     if (query != null) {
@@ -119,7 +119,7 @@ public class Mock implements CodexInstancesResource {
         coll.setResultInfo(resultInfo);
         resultInfo.getDiagnostics().add(d);
         asyncResultHandler.handle(
-          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+          Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond200WithApplicationJson(coll)));
         return;
       }
       try {
@@ -127,17 +127,17 @@ public class Mock implements CodexInstancesResource {
       } catch (CQLParseException ex) {
         logger.warn("CQLParseException: " + ex.getMessage());
         asyncResultHandler.handle(
-          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+          Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
         return;
       } catch (IOException ex) {
         asyncResultHandler.handle(
-          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(ex.getMessage())));
+          Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond500WithTextPlain(ex.getMessage())));
         return;
       }
       // be able to provoke 400 for mock prefix
       if (query.startsWith("mock") && !query.equals(id)) {
         asyncResultHandler.handle(
-          Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest("provoked unsupported " + query)));
+          Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain("provoked unsupported " + query)));
         return;
       }
       CQLSortNode sn = CQLInspect.getSort(top);
@@ -147,7 +147,7 @@ public class Mock implements CodexInstancesResource {
           Collections.sort(iInstances, comp);
         } catch (IllegalArgumentException ex) {
           asyncResultHandler.handle(
-            Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+            Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
           return;
         }
       }
@@ -165,19 +165,18 @@ public class Mock implements CodexInstancesResource {
     ResultInfo resultInfo = new ResultInfo().withTotalRecords(iInstances.size());
     coll.setResultInfo(resultInfo);
 
-    asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(coll)));
+    asyncResultHandler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond200WithApplicationJson(coll)));
   }
 
   @Override
-  public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     logger.info("codex.mock getCodexInstancesById " + id);
     for (Instance e : mInstances) {
       if (e.getId() != null && e.getId().equals(id)) {
-        asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesByIdResponse.withJsonOK(e)));
+        asyncResultHandler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(e)));
         return;
       }
     }
-    asyncResultHandler.handle(Future.succeededFuture(CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainNotFound(id)));
+    asyncResultHandler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond404WithTextPlain(id)));
   }
-
 }
