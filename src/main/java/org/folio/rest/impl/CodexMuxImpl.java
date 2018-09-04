@@ -11,7 +11,6 @@ import javax.ws.rs.core.Response;
 import org.folio.codex.Mock;
 import org.folio.codex.Multiplexer;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.resource.CodexInstances;
 
 public class CodexMuxImpl implements CodexInstances {
