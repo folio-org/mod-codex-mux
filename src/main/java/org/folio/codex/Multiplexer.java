@@ -29,7 +29,7 @@ import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
 import org.folio.rest.jaxrs.model.Diagnostic;
-import org.folio.rest.jaxrs.resource.CodexInstancesResource;
+import org.folio.rest.jaxrs.resource.CodexInstances;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
@@ -38,7 +38,7 @@ import org.z3950.zing.cql.CQLSortNode;
 import org.z3950.zing.cql.CQLTermNode;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class Multiplexer implements CodexInstancesResource {
+public class Multiplexer implements CodexInstances {
 
   class MergeRequest {
     int offset;
@@ -284,7 +284,7 @@ public class Multiplexer implements CodexInstancesResource {
       ri.setDiagnostics(dl);
       res.setResultInfo(ri);
       handler.handle(Future.succeededFuture(
-        CodexInstancesResource.GetCodexInstancesResponse.withJsonOK(res)));
+        CodexInstances.GetCodexInstancesResponse.respond200WithApplicationJson(res)));
   }
 
   private CQLNode filterSource(String mod, CQLNode top) {
@@ -320,13 +320,13 @@ public class Multiplexer implements CodexInstancesResource {
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
-    Context vertxContext) throws Exception {
+    Context vertxContext) {
 
     LHeaders h = new LHeaders(okapiHeaders);
     getModules(h, vertxContext, res -> {
       if (res.failed()) {
         handler.handle(Future.succeededFuture(
-          CodexInstancesResource.GetCodexInstancesResponse.withPlainUnauthorized(res.cause().getMessage())));
+          CodexInstances.GetCodexInstancesResponse.respond401WithTextPlain(res.cause().getMessage())));
       } else {
         Comparator<Instance> comp = null;
         CQLNode top = null;
@@ -337,11 +337,11 @@ public class Multiplexer implements CodexInstancesResource {
           } catch (CQLParseException ex) {
             logger.warn("CQLParseException: " + ex.getMessage());
             handler.handle(
-              Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+              Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
             return;
           } catch (IOException ex) {
             handler.handle(
-              Future.succeededFuture(CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(ex.getMessage())));
+              Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond500WithTextPlain(ex.getMessage())));
             return;
           }
           CQLSortNode sn = CQLInspect.getSort(top);
@@ -351,7 +351,7 @@ public class Multiplexer implements CodexInstancesResource {
             } catch (IllegalArgumentException ex) {
               handler.handle(
                 Future.succeededFuture(
-                  CodexInstancesResource.GetCodexInstancesResponse.withPlainBadRequest(ex.getMessage())));
+                  CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
               return;
             }
           }
@@ -365,7 +365,7 @@ public class Multiplexer implements CodexInstancesResource {
         mergeSort(res.result(), top, mq, comp, res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
-              CodexInstancesResource.GetCodexInstancesResponse.withPlainInternalServerError(res2.cause().getMessage()))
+              CodexInstances.GetCodexInstancesResponse.respond500WithTextPlain(res2.cause().getMessage()))
             );
           } else {
             analyzeResult(mq.cols, res2.result(), handler);
@@ -404,14 +404,14 @@ public class Multiplexer implements CodexInstancesResource {
   @Override
   public void getCodexInstancesById(String id, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
-    Context vertxContext) throws Exception {
+    Context vertxContext) {
 
     logger.info("Codex.mux getCodexInstancesById");
     LHeaders h = new LHeaders(okapiHeaders);
     getModules(h, vertxContext, res1 -> {
       if (res1.failed()) {
         handler.handle(Future.succeededFuture(
-          CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainUnauthorized(res1.cause().getMessage())));
+          CodexInstances.GetCodexInstancesByIdResponse.respond401WithTextPlain(res1.cause().getMessage())));
       } else {
         List<Instance> instances = new LinkedList<>();
         List<Future> futures = new LinkedList<>();
@@ -423,15 +423,15 @@ public class Multiplexer implements CodexInstancesResource {
         CompositeFuture.all(futures).setHandler(res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
-              CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainInternalServerError(res2.cause().getMessage()))
+              CodexInstances.GetCodexInstancesByIdResponse.respond500WithTextPlain(res2.cause().getMessage()))
           );
           } else {
             if (instances.isEmpty()) {
               handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesByIdResponse.withPlainNotFound(id)));
+                CodexInstances.GetCodexInstancesByIdResponse.respond404WithTextPlain(id)));
             } else {
               handler.handle(Future.succeededFuture(
-                CodexInstancesResource.GetCodexInstancesByIdResponse.withJsonOK(instances.get(0))));
+                CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(instances.get(0))));
             }
           }
         });
