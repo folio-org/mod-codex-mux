@@ -1,3 +1,7 @@
+## 2.2.2 2018-09-06
+ * MODCXMUX-24 Update to RAML 1.0
+ * MODCXMUX-23 SQ fixes
+
 ## 2.2.1 2018-03-13
 
  * MODCXMUV-20 Update to RMB 19.0.0
