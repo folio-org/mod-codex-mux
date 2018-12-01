@@ -1,3 +1,8 @@
+## 2.3.0 2018-12-01
+ * Update to RMB 23.2.1
+ * MODCXMUX-29 Provide codex 3.2
+ * MODCXMUX-28 Update for subject in instances
+
 ## 2.2.2 2018-09-06
  * MODCXMUX-24 Update to RAML 1.0
  * MODCXMUX-23 SQ fixes
