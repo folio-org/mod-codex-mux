@@ -30,6 +30,8 @@ import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
 import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.resource.CodexInstances;
+import org.folio.rest.jaxrs.resource.CodexPackages;
+import org.folio.rest.jaxrs.resource.CodexPackagesSources;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
