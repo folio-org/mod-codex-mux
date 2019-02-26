@@ -3,7 +3,6 @@ package org.folio.codex;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -13,6 +12,7 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
+import org.folio.codex.exception.GetModulesFailException;
 import org.folio.okapi.common.CQLUtil;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.Diagnostic;
@@ -34,8 +34,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -62,61 +60,7 @@ public class Multiplexer implements CodexInstances {
 
   private static Logger logger = LoggerFactory.getLogger("codex.mux");
 
-  private HttpHelper httpHelper = new HttpHelper();
-
-  void getModules(LHeaders okapiHeaders, Context vertxContext,
-    Handler<AsyncResult<List<String>>> fut) {
-
-    final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
-    if (okapiUrl == null) {
-      fut.handle(Future.failedFuture("missing " + XOkapiHeaders.URL));
-      return;
-    }
-    final String tenant = okapiHeaders.get(XOkapiHeaders.TENANT);
-
-    HttpClient client = vertxContext.owner().createHttpClient();
-    final String absUrl = okapiUrl + "/_/proxy/tenants/" + tenant + "/interfaces/codex";
-    logger.info("codex.mux getModules url=" + absUrl);
-    HttpClientRequest req = client.getAbs(absUrl, res -> {
-      if (res.statusCode() != 200) {
-        client.close();
-        fut.handle(Future.failedFuture("Get " + absUrl + " returned status " + res.statusCode()));
-        return;
-      }
-      Buffer b = Buffer.buffer();
-      res.handler(b::appendBuffer);
-      res.endHandler(r -> {
-        logger.info("codex.mux getModules got " + b.toString());
-        client.close();
-        List<String> l = new LinkedList<>();
-        JsonArray a = null;
-        try {
-          a = b.toJsonArray();
-        } catch (DecodeException ex) {
-          logger.warn(ex.getMessage());
-          fut.handle(Future.failedFuture(ex.getMessage()));
-        }
-        if (a != null) {
-          for (int i = 0; i < a.size(); i++) {
-            JsonObject j = a.getJsonObject(i);
-            String m = j.getString("id");
-            if (!m.startsWith("mod-codex-mux")) { // avoid returning self
-              l.add(m);
-            }
-          }
-          fut.handle(Future.succeededFuture(l));
-        }
-      });
-    });
-    for (Map.Entry<String, String> e : okapiHeaders.entrySet()) {
-      req.putHeader(e.getKey(), e.getValue());
-    }
-    req.exceptionHandler(r -> {
-      fut.handle(Future.failedFuture("Get " + absUrl + " returned exception " + r.getMessage()));
-      client.close();
-    });
-    req.end();
-  }
+  private OkapiClient okapiClient = new OkapiClient();
 
   private void getByQuery(String module, MergeRequest mq, String query,
     int offset, int limit, Handler<AsyncResult<Void>> fut) {
@@ -133,7 +77,7 @@ public class Multiplexer implements CodexInstances {
       return;
     }
     logger.info("getByQuery url=" + url);
-    httpHelper.getUrl(module, url, client, mq.headers, res -> {
+    okapiClient.getUrl(module, url, client, mq.headers, res -> {
       if (res.failed()) {
         logger.warn("getByQuery. getUrl failed " + res.cause());
         fut.handle(Future.failedFuture(res.cause()));
@@ -303,7 +247,7 @@ public class Multiplexer implements CodexInstances {
     Context vertxContext) {
 
     LHeaders h = new LHeaders(okapiHeaders);
-    getModules(h, vertxContext, res -> {
+    okapiClient.getModules(h, vertxContext,CodexInterfaces.CODEX, res -> {
       if (res.failed()) {
         handler.handle(Future.succeededFuture(
           CodexInstances.GetCodexInstancesResponse.respond401WithTextPlain(res.cause().getMessage())));
@@ -361,38 +305,32 @@ public class Multiplexer implements CodexInstances {
     Context vertxContext) {
     logger.info("Codex.mux getCodexInstancesById");
     LHeaders headers = new LHeaders(okapiHeaders);
-    getModules(headers, vertxContext, res1 -> {
-      if (res1.failed()) {
-        handler.handle(Future.succeededFuture(
-          CodexInstances.GetCodexInstancesByIdResponse.respond401WithTextPlain(res1.cause().getMessage())));
-      } else {
-        List<Future<Optional<Instance>>> futures = new ArrayList<>();
-        for (String m : res1.result()) {
-          Future<Optional<Instance>> future = httpHelper.getById(m, vertxContext, headers,
-            headers.get(XOkapiHeaders.URL) + "/codex-instances/" + id, Instance.class);
-          futures.add(future);
+    okapiClient.getModuleList(vertxContext, headers, CodexInterfaces.CODEX)
+      .compose(modules -> okapiClient.getOptionalObjects(vertxContext, headers, modules,
+        headers.get(XOkapiHeaders.URL) + "/codex-instances/" + id , Instance.class))
+      .map(optionalInstances -> {
+        Optional<Instance> instance = optionalInstances.stream()
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .findFirst();
+        if (!instance.isPresent()) {
+          handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond404WithTextPlain(id)));
+        } else {
+          handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(
+            instance.get())));
         }
-        CompositeFuture.all(new ArrayList<>(futures)).setHandler(combinedResult -> {
-          if (combinedResult.failed()) {
-            handler.handle(Future.succeededFuture(
-              CodexInstances.GetCodexInstancesByIdResponse.respond500WithTextPlain(combinedResult.cause().getMessage()))
-            );
-          } else {
-            Optional<Instance> instance = futures.stream()
-              .map(Future::result)
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .findFirst();
-            if (!instance.isPresent()) {
-              handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond404WithTextPlain(id)));
-            } else {
-              handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(
-                instance.get())));
-            }
-          }
-        });
-      }
-    });
+        return null;
+      })
+      .otherwise(throwable -> {
+        if(throwable instanceof GetModulesFailException) {
+          handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond401WithTextPlain(
+            throwable.getMessage())));
+        } else{
+          handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond500WithTextPlain(
+            throwable.getMessage())));
+        }
+        return null;
+      });
   }
 
 }
