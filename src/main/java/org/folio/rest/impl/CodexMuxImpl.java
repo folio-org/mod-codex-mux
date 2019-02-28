@@ -2,7 +2,6 @@ package org.folio.rest.impl;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -13,10 +12,8 @@ import org.folio.codex.Mock;
 import org.folio.codex.Multiplexer;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.resource.CodexInstances;
-import org.folio.rest.jaxrs.resource.CodexPackages;
-import org.folio.rest.jaxrs.resource.CodexPackagesSources;
 
-public class CodexMuxImpl implements CodexInstances, CodexPackages, CodexPackagesSources {
+public class CodexMuxImpl implements CodexInstances {
 
   private static CodexInstances mux;
   private static Map<String, CodexInstances> mock = new HashMap<>();
@@ -55,21 +52,6 @@ public class CodexMuxImpl implements CodexInstances, CodexPackages, CodexPackage
 
     get(okapiHeaders).getCodexInstancesById(id, lang,
       okapiHeaders, asyncResultHandler, vertxContext);
-  }
-
-  @Override
-  public void getCodexPackages(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    asyncResultHandler.handle(Future.succeededFuture(Response.status(Response.Status.NOT_IMPLEMENTED).build()));
-  }
-
-  @Override
-  public void getCodexPackagesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    asyncResultHandler.handle(Future.succeededFuture(Response.status(Response.Status.NOT_IMPLEMENTED).build()));
-  }
-
-  @Override
-  public void getCodexPackagesSources(String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    asyncResultHandler.handle(Future.succeededFuture(Response.status(Response.Status.NOT_IMPLEMENTED).build()));
   }
 
 }
