@@ -256,6 +256,8 @@ public class Multiplexer implements CodexInstances {
       source = new CQLTermNode("source", rel, "kb");
     } else if (mod.startsWith("mod-codex-inventory")) {
       source = new CQLTermNode("source", rel, "local");
+    } else if (mod.startsWith("mod-agreements")) {
+      source = new CQLTermNode("source", rel, "localkb");
     } else if (mod.startsWith("mock")) { // for Unit testing
       source = new CQLTermNode("source", rel, mod);
     }
