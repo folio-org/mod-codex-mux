@@ -18,6 +18,7 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <ramlfiles_path>${basedir}/ramls/raml-util/ramls/codex</ramlfiles_path>
+    <jsonschema_paths>raml-util/schemas/**</jsonschema_paths>
     <vertx-version>3.5.4</vertx-version>
   </properties>
 
@@ -63,7 +64,7 @@
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
-      <version>23.2.1</version>
+      <version>23.6.0</version>
     </dependency>
     <dependency>
       <groupId>org.folio.okapi</groupId>
@@ -232,6 +233,10 @@
                 <systemProperty>
                   <key>raml_files</key>
                   <value>${ramlfiles_path}</value>
+                </systemProperty>
+                <systemProperty>
+                  <key>schema_paths</key>
+                  <value>${jsonschema_paths}</value>
                 </systemProperty>
               </systemProperties>
             </configuration>
