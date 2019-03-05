@@ -12,21 +12,6 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
-import org.folio.codex.exception.GetModulesFailException;
-import org.folio.okapi.common.CQLUtil;
-import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.rest.jaxrs.model.Diagnostic;
-import org.folio.rest.jaxrs.model.Instance;
-import org.folio.rest.jaxrs.model.InstanceCollection;
-import org.folio.rest.jaxrs.model.ResultInfo;
-import org.folio.rest.jaxrs.resource.CodexInstances;
-import org.z3950.zing.cql.CQLNode;
-import org.z3950.zing.cql.CQLParseException;
-import org.z3950.zing.cql.CQLParser;
-import org.z3950.zing.cql.CQLRelation;
-import org.z3950.zing.cql.CQLSortNode;
-import org.z3950.zing.cql.CQLTermNode;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
@@ -39,6 +24,21 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.z3950.zing.cql.CQLNode;
+import org.z3950.zing.cql.CQLParseException;
+import org.z3950.zing.cql.CQLParser;
+import org.z3950.zing.cql.CQLRelation;
+import org.z3950.zing.cql.CQLSortNode;
+import org.z3950.zing.cql.CQLTermNode;
+
+import org.folio.codex.exception.GetModulesFailException;
+import org.folio.okapi.common.CQLUtil;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.rest.jaxrs.model.Diagnostic;
+import org.folio.rest.jaxrs.model.Instance;
+import org.folio.rest.jaxrs.model.InstanceCollection;
+import org.folio.rest.jaxrs.model.ResultInfo;
+import org.folio.rest.jaxrs.resource.CodexInstances;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class Multiplexer implements CodexInstances {
@@ -46,7 +46,7 @@ public class Multiplexer implements CodexInstances {
   static class MergeRequest {
     int offset;
     int limit;
-    LHeaders headers;
+    Map<String, String> headers;
     Context vertxContext;
     Map<String, MuxCollection> cols;
   }
@@ -246,8 +246,7 @@ public class Multiplexer implements CodexInstances {
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
     Context vertxContext) {
 
-    LHeaders h = new LHeaders(okapiHeaders);
-    okapiClient.getModules(h, vertxContext,CodexInterfaces.CODEX, res -> {
+    okapiClient.getModules(okapiHeaders, vertxContext,CodexInterfaces.CODEX, res -> {
       if (res.failed()) {
         handler.handle(Future.succeededFuture(
           CodexInstances.GetCodexInstancesResponse.respond401WithTextPlain(res.cause().getMessage())));
@@ -285,7 +284,7 @@ public class Multiplexer implements CodexInstances {
         mq.offset = offset;
         mq.limit = limit;
         mq.vertxContext = vertxContext;
-        mq.headers = h;
+        mq.headers = okapiHeaders;
         mergeSort(res.result(), top, mq, comp, res2 -> {
           if (res2.failed()) {
             handler.handle(Future.succeededFuture(
@@ -304,10 +303,9 @@ public class Multiplexer implements CodexInstances {
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
     Context vertxContext) {
     logger.info("Codex.mux getCodexInstancesById");
-    LHeaders headers = new LHeaders(okapiHeaders);
-    okapiClient.getModuleList(vertxContext, headers, CodexInterfaces.CODEX)
-      .compose(modules -> okapiClient.getOptionalObjects(vertxContext, headers, modules,
-        headers.get(XOkapiHeaders.URL) + "/codex-instances/" + id , Instance.class))
+    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX)
+      .compose(modules -> okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
+        okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances/" + id , Instance.class))
       .map(optionalInstances -> {
         Optional<Instance> instance = optionalInstances.stream()
           .filter(Optional::isPresent)

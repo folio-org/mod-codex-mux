@@ -3,7 +3,7 @@
   "identifier": "",
   "name": "Academic OneFile",
   "description": "Academic OneFile description",
-  "type": "Online Reference",
+  "type": "onlinereference",
   "providerId": "18",
   "provider": "Gale|Cengage",
   "platform": "Gale|Cengage platform",

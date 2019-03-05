@@ -16,6 +16,17 @@
           "pathPattern": "/codex-instances/{id}"
         }
       ]
+    },
+    {
+      "id": "codex-packages-sources",
+      "version": "1.0",
+      "interfaceType": "multiple",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/codex-packages-sources"
+        }
+      ]
     }
   ],
   "permissionSets": [],
