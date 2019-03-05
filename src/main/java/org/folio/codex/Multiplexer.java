@@ -45,9 +45,6 @@ import org.folio.rest.jaxrs.resource.CodexInstances;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class Multiplexer implements CodexInstances {
 
-  private static final String CODEX_INSTANCES_QUERY = "/codex-instances?";
-  private static final String CODEX_PACKAGES_QUERY = "/codex-packages?";
-
   static class MergeRequest<T> {
     int offset;
     int limit;
@@ -95,9 +92,8 @@ public class Multiplexer implements CodexInstances {
                                  Function<String, CollectionExtension<T>> parser, Handler<AsyncResult<Void>> fut) {
 
     HttpClient client = mq.vertxContext.owner().createHttpClient();
-    String queryPath = codexInterface.equals(CodexInterfaces.CODEX) ? CODEX_INSTANCES_QUERY : CODEX_PACKAGES_QUERY;
 
-    String url = mq.headers.get(XOkapiHeaders.URL) + queryPath
+    String url = mq.headers.get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
     try {
       if (query != null) {

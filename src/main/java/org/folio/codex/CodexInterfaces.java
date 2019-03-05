@@ -1,15 +1,23 @@
 package org.folio.codex;
 
+
 public enum CodexInterfaces {
-  CODEX("codex"), CODEX_PACKAGES("codex-packages");
+  CODEX("codex", "/codex-instances?"), CODEX_PACKAGES("codex-packages", "/codex-packages?");
 
   private String value;
 
-  CodexInterfaces(String value) {
+  private String queryPath;
+
+  CodexInterfaces(String value, String queryPath) {
     this.value = value;
+    this.queryPath = queryPath;
   }
 
   public String getValue() {
     return value;
+  }
+
+  public String getQueryPath() {
+    return queryPath;
   }
 }
