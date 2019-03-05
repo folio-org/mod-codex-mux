@@ -8,12 +8,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
-import org.folio.okapi.common.XOkapiHeaders;
-
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
 import com.google.common.io.Files;
+
+import org.folio.okapi.common.XOkapiHeaders;
 
 public class TestHelper {
 
@@ -27,8 +27,8 @@ public class TestHelper {
         .withBody(modulesBody)));
   }
 
-  public static void stubPackagesSources(String responseBody, int status, String moduleId) {
-    stubFor(get(new UrlPathPattern(new EqualToPattern("/codex-packages-sources"), false))
+  public static void stubPackages(String responseBody, int status, String moduleId) {
+    stubFor(get(new UrlPathPattern(new EqualToPattern("/codex-packages"), false))
       .withHeader(XOkapiHeaders.MODULE_ID, new EqualToPattern(moduleId))
       .willReturn(new ResponseDefinitionBuilder()
         .withStatus(status)

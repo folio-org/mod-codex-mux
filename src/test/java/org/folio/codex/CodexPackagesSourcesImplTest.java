@@ -3,11 +3,11 @@ package org.folio.codex;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import static org.folio.codex.TestHelper.readFile;
 import static org.folio.codex.TestHelper.stubModules;
-import static org.folio.codex.TestHelper.stubPackagesSources;
-import static org.junit.Assert.assertTrue;
+import static org.folio.codex.TestHelper.stubPackages;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -53,6 +53,7 @@ public class CodexPackagesSourcesImplTest {
   private final String CODEX_PACKAGES_SOURCES_MODULE_1 = "codex-packages-sources1";
   private final String CODEX_PACKAGES_SOURCES_MODULE_2 = "codex-packages-sources2";
   private final String CODEX_PACKAGES_SOURCES_PATH = "/codex-packages-sources";
+  private final String CODEX_PACKAGES_PATH = "/codex-packages";
 
   @Rule
   public WireMockRule userMockServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort().notifier(
@@ -71,7 +72,7 @@ public class CodexPackagesSourcesImplTest {
     setupMux(context);
 
     List<Module> modules = Arrays.asList(new Module(CODEX_PACKAGES_SOURCES_MODULE_1), new Module(CODEX_PACKAGES_SOURCES_MODULE_2));
-    stubModules(CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(), new ObjectMapper().writeValueAsString(modules), 200);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(), new ObjectMapper().writeValueAsString(modules), 200);
   }
 
   private String getUrl() {
@@ -90,8 +91,8 @@ public class CodexPackagesSourcesImplTest {
   public void shouldReturnListOfPackagesSources() throws IOException, URISyntaxException {
     String stubCodexPackageSource1 = readFile("codex/responses/codex-packages-sources.json");
     String stubCodexPackageSource2 = readFile("codex/responses/codex-packages-sources2.json");
-    stubPackagesSources(stubCodexPackageSource1, 200, CODEX_PACKAGES_SOURCES_MODULE_1);
-    stubPackagesSources(stubCodexPackageSource2, 200, CODEX_PACKAGES_SOURCES_MODULE_2);
+    stubPackages(stubCodexPackageSource1, 200, CODEX_PACKAGES_SOURCES_MODULE_1);
+    stubPackages(stubCodexPackageSource2, 200, CODEX_PACKAGES_SOURCES_MODULE_2);
 
     ObjectMapper mapper = new ObjectMapper();
     final SourceCollection codexPackagesSources1 = mapper.readValue(stubCodexPackageSource1, SourceCollection.class);
@@ -100,8 +101,7 @@ public class CodexPackagesSourcesImplTest {
         .getSources().stream()).collect(Collectors.toList());
 
 
-    SourceCollection response = RestAssured
-      .given()
+    SourceCollection response = RestAssured.given()
       .port(portCodex)
       .header(tenantHeader)
       .header(urlHeader)
@@ -120,7 +120,7 @@ public class CodexPackagesSourcesImplTest {
 
   @Test
   public void shouldReturnEmptyCodexPackagesListWhenNoModulesImplementInterface() {
-    stubModules(CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(), "[]", 200);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(), "[]", 200);
 
     final SourceCollection sourceCollection = RestAssured
       .given()
@@ -140,7 +140,7 @@ public class CodexPackagesSourcesImplTest {
 
   @Test
   public void shouldReturn400WhenFailsToGetListOfModules() {
-    stubModules(CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(), null, 500);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(), null, 500);
 
     int statusCode = RestAssured
       .given()
@@ -159,7 +159,7 @@ public class CodexPackagesSourcesImplTest {
 
   @Test
   public void shouldReturn500WhenConnectionToModuleFails() {
-    stubFor(get(new UrlPathPattern(new EqualToPattern(CODEX_PACKAGES_SOURCES_PATH), false))
+    stubFor(get(new UrlPathPattern(new EqualToPattern(CODEX_PACKAGES_PATH), false))
       .willReturn(new ResponseDefinitionBuilder().withFault(Fault.RANDOM_DATA_THEN_CLOSE)));
 
     int statusCode = RestAssured
