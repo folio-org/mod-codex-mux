@@ -16,6 +16,28 @@
           "pathPattern": "/codex-instances/{id}"
         }
       ]
+    },
+    {
+      "id" : "codex-packages",
+      "version" : "1.0",
+      "interfaceType": "multiple",
+      "handlers" : [
+        {
+          "methods" : [ "GET" ],
+          "pathPattern" : "/codex-packages",
+          "permissionsRequired" : [ "codex.packages.collection.get" ],
+          "modulePermissions": ["configuration.entries.collection.get"]
+        }, {
+          "methods" : [ "GET" ],
+          "pathPattern" : "/codex-packages/{id}",
+          "permissionsRequired" : [ "codex.packages.item.get" ],
+          "modulePermissions": ["configuration.entries.collection.get"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/codex-packages-sources"
+        }
+      ]
     }
   ],
   "permissionSets": [],

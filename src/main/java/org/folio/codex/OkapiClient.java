@@ -37,8 +37,8 @@ public class OkapiClient {
    * @param url url of requests
    * @param responseClass class of retrieved objects
    */
-  public <T> Future<List<Optional<T>>> getOptionalObjects(Context vertxContext, LHeaders headers, List<String> modules, String url,
-                                                          Class<T> responseClass) {
+  public <T> Future<List<Optional<T>>> getOptionalObjects(Context vertxContext, Map<String, String> headers,
+                                                          List<String> modules, String url, Class<T> responseClass) {
     List<Future<Optional<T>>> futures = new ArrayList<>();
     for (String module : modules) {
       Future<Optional<T>> future = getObject(module, vertxContext, headers,
@@ -53,8 +53,8 @@ public class OkapiClient {
       );
   }
 
-  private <T> Future<Optional<T>> getObject(String module, Context vertxContext, LHeaders okapiHeaders, String url,
-                                           Class<T> responseClass) {
+  private <T> Future<Optional<T>> getObject(String module, Context vertxContext, Map<String, String> okapiHeaders,
+                                            String url, Class<T> responseClass) {
     Future<Optional<T>> future = Future.future();
     HttpClient client = vertxContext.owner().createHttpClient();
     logger.info("getObject url=" + url);
@@ -80,8 +80,8 @@ public class OkapiClient {
     return future;
   }
 
-  public void getUrl(String module, String url, HttpClient client,
-                      LHeaders okapiHeaders, Handler<AsyncResult<Multiplexer.MuxCollection>> fut) {
+  public void getUrl(String module, String url, HttpClient client, Map<String, String> okapiHeaders,
+                     Handler<AsyncResult<Multiplexer.MuxCollection>> fut) {
 
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer b = Buffer.buffer();
@@ -110,7 +110,8 @@ public class OkapiClient {
   /**
    * Similar to getModules method, but this method returns a future instead of using handler
    */
-  public Future<List<String>> getModuleList(Context vertxContext, LHeaders headers, CodexInterfaces supportedInterface) {
+  public Future<List<String>> getModuleList(Context vertxContext, Map<String, String> headers,
+                                            CodexInterfaces supportedInterface) {
     Future<List<String>> future = Future.future();
     getModules(headers, vertxContext, supportedInterface, result -> {
       if (result.failed()) {
@@ -122,7 +123,7 @@ public class OkapiClient {
     return future;
   }
 
-  public void getModules(LHeaders okapiHeaders, Context vertxContext,
+  public void getModules(Map<String, String> okapiHeaders, Context vertxContext,
                          final CodexInterfaces supportedInterface, Handler<AsyncResult<List<String>>> fut) {
     final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
     if (okapiUrl == null) {

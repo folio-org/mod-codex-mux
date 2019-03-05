@@ -6,7 +6,6 @@ import java.util.Optional;
 import javax.ws.rs.core.Response;
 
 import org.folio.codex.CodexInterfaces;
-import org.folio.codex.LHeaders;
 import org.folio.codex.OkapiClient;
 import org.folio.codex.exception.GetModulesFailException;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -26,18 +25,20 @@ public class CodexPackagesImpl implements CodexPackages {
   private OkapiClient okapiClient = new OkapiClient();
 
   @Override
-  public void getCodexPackages(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void getCodexPackages(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
+                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     asyncResultHandler.handle(Future.succeededFuture(CodexPackages.GetCodexPackagesResponse.status(Response.Status.NOT_IMPLEMENTED).build()));
   }
 
   @Override
-  public void getCodexPackagesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler, Context vertxContext) {
+  public void getCodexPackagesById(String id, String lang, Map<String, String> okapiHeaders,
+                                   Handler<AsyncResult<Response>> handler, Context vertxContext) {
+
     logger.info("CodexPackagesImpl#getCodexPackagesById");
-    LHeaders headers = new LHeaders(okapiHeaders);
-    okapiClient.getModuleList(vertxContext, headers, CodexInterfaces.CODEX_PACKAGES)
+    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX_PACKAGES)
       .compose(modules ->
-        okapiClient.getOptionalObjects(vertxContext, headers, modules,
-          headers.get(XOkapiHeaders.URL) + "/codex-packages/" + id, Package.class))
+        okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
+          okapiHeaders.get(XOkapiHeaders.URL) + "/codex-packages/" + id, Package.class))
       .map(instances -> {
         Optional<Package> packageObject = instances.stream()
           .filter(Optional::isPresent)

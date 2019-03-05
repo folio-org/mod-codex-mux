@@ -4,22 +4,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
+import static org.folio.codex.TestHelper.readFile;
+import static org.folio.codex.TestHelper.stubModules;
+import static org.folio.codex.TestHelper.stubPackage;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-
-import org.folio.codex.model.Module;
-import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.rest.RestVerticle;
-import org.folio.rest.tools.utils.NetworkUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,15 +22,23 @@ import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
-import com.google.common.io.Files;
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Header;
-
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.skyscreamer.jsonassert.JSONAssert;
+
+import org.folio.codex.model.Module;
+import org.folio.rest.RestVerticle;
+import org.folio.rest.tools.utils.NetworkUtils;
 
 @RunWith(VertxUnitRunner.class)
 public class CodexPackagesImplTest {
@@ -60,7 +60,7 @@ public class CodexPackagesImplTest {
 
   private Vertx vertx = Vertx.vertx();
 
-  private Header tenantHeader = new Header("X-Okapi-Tenant", TENANT);
+  private Header tenantHeader = new Header(XOkapiHeaders.TENANT, TENANT);
   private Header urlHeader;
 
 
@@ -68,12 +68,11 @@ public class CodexPackagesImplTest {
   public void setUp(TestContext context) throws JsonProcessingException {
     port = userMockServer.port();
     url = host + ":" + port;
-    urlHeader = new Header("X-Okapi-Url", url);
+    urlHeader = new Header(XOkapiHeaders.URL, url);
     setupMux(context);
 
-
     List<Module> modules = Arrays.asList(new Module(CODEX_MODULE_1), new Module(CODEX_MODULE_2));
-    stubModules(new ObjectMapper().writeValueAsString(modules), 200);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(), new ObjectMapper().writeValueAsString(modules), 200);
   }
 
   @Test
@@ -112,7 +111,7 @@ public class CodexPackagesImplTest {
 
   @Test
   public void shouldReturn404WhenNoModulesExist() {
-    stubModules("[]", 200);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(),"[]", 200);
 
     int statusCode = RestAssured.given()
       .port(portCodex)
@@ -127,7 +126,7 @@ public class CodexPackagesImplTest {
 
   @Test
   public void shouldReturn401WhenFailsToGetListOfModules() {
-    stubModules(null, 500);
+    stubModules(CodexInterfaces.CODEX_PACKAGES.getValue(),null, 500);
 
     int statusCode = RestAssured.given()
       .port(portCodex)
@@ -158,40 +157,12 @@ public class CodexPackagesImplTest {
     assertEquals(500, statusCode);
   }
 
-
-  private void stubModules(String modulesBody, int status) {
-    stubFor(get(new UrlPathPattern(new EqualToPattern("/_/proxy/tenants/" + TENANT + "/interfaces/" + CodexInterfaces.CODEX_PACKAGES.getValue()), false))
-      .willReturn(new ResponseDefinitionBuilder()
-        .withStatus(status)
-        .withBody(modulesBody)));
-  }
-
-  private void stubPackage(String responseBody, int status, String moduleId) {
-    stubFor(get(new UrlPathPattern(new EqualToPattern("/codex-packages/" + PACKAGE_ID), false))
-      .withHeader(XOkapiHeaders.MODULE_ID, new EqualToPattern(moduleId))
-      .willReturn(new ResponseDefinitionBuilder()
-        .withStatus(status)
-        .withBody(responseBody)));
-  }
-
   private void setupMux(TestContext context) {
     JsonObject conf = new JsonObject();
     conf.put("http.port", portCodex);
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
     vertx.deployVerticle(RestVerticle.class.getName(), opt,  context.asyncAssertSuccess());
-  }
-
-  public static String readFile(String filename) throws IOException, URISyntaxException {
-    return Files.asCharSource(getFile(filename), StandardCharsets.UTF_8).read();
-  }
-
-  /**
-   * Returns File object corresponding to the file on classpath with specified filename
-   */
-  public static File getFile(String filename) throws URISyntaxException {
-    return new File(CodexPackagesImplTest.class.getClassLoader()
-      .getResource(filename).toURI());
   }
 
 }
