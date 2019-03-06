@@ -86,7 +86,7 @@ public class Multiplexer implements CodexInstances {
 
   private OkapiClient okapiClient = new OkapiClient();
 
-  @SuppressWarnings({"squid:MaximumInheritanceDepth", "squid:S00107"})
+  @SuppressWarnings({"squid:S00107"})
   private <T> void getByQuery(String module, MergeRequest<T> mq, String query,
                                  int offset, int limit, CodexInterfaces codexInterface,
                                  Function<String, CollectionExtension<T>> parser, Handler<AsyncResult<Void>> fut) {
