@@ -80,15 +80,15 @@ public class OkapiClient {
     return future;
   }
 
-  public void getUrl(String module, String url, HttpClient client, Map<String, String> okapiHeaders,
-                     Handler<AsyncResult<Multiplexer.MuxCollection>> fut) {
+  public <T> void getUrl(String module, String url, HttpClient client,
+                      Map<String, String> okapiHeaders, Handler<AsyncResult<Multiplexer.MuxCollection<T>>> fut) {
 
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(r -> {
         client.close();
-        Multiplexer.MuxCollection mc = new Multiplexer.MuxCollection();
+        Multiplexer.MuxCollection<T> mc = new Multiplexer.MuxCollection<>();
         mc.message = b;
         mc.statusCode = res.statusCode();
         fut.handle(Future.succeededFuture(mc));

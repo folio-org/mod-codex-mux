@@ -14,41 +14,42 @@ public class InstanceComparator {
     throw new IllegalStateException("InstanceComparator");
   }
 
-  private static int cmp(String i1, String i2, boolean fReverse) {
+  private static int cmp(String i1, String i2) {
     final String s1 = i1 != null ? i1 : "";
     final String s2 = i2 != null ? i2 : "";
-    final int r = s1.compareToIgnoreCase(s2);
-    return fReverse ? -r : r;
+    return s1.compareToIgnoreCase(s2);
   }
 
   static Comparator<Instance> get(CQLSortNode sn) {
+    if (sn == null) {
+      return null;
+    }
     Comparator<Instance> comp = null;
     Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
     if (it.hasNext()) {
       ModifierSet s = it.next();
-      List<Modifier> mods = s.getModifiers();
-      boolean reverse = false;
-      for (Modifier mod : mods) {
-        if (mod.getType().startsWith("desc")) {
-          reverse = true;
-        }
-      }
-      final boolean fReverse = reverse;
       final String index = s.getBase();
 
       if ("title".equals(index)) {
         comp = (Instance i1, Instance i2)
-          -> cmp(i1.getTitle(), i2.getTitle(), fReverse);
+          -> cmp(i1.getTitle(), i2.getTitle());
       } else if ("date".equals(index)) {
         comp = (Instance i1, Instance i2)
-          -> cmp(i1.getDate(), i2.getDate(), fReverse);
+          -> cmp(i1.getDate(), i2.getDate());
       } else if ("id".equals(index)) {
         comp = (Instance i1, Instance i2)
-          -> cmp(i1.getId(), i2.getId(), fReverse);
+          -> cmp(i1.getId(), i2.getId());
       } else {
         throw (new IllegalArgumentException("unsupported sort index " + index));
       }
+      if(isReverse(s.getModifiers())){
+        comp = comp.reversed();
+      }
     }
     return comp;
+  }
+
+  private static boolean isReverse(List<Modifier> mods) {
+    return mods.stream().anyMatch(modifier -> modifier.getType().startsWith("desc"));
   }
 }
