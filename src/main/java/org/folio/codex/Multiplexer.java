@@ -285,7 +285,11 @@ public class Multiplexer implements CodexInstances {
           CQLParser parser = new CQLParser(CQLParser.V1POINT2);
           try {
             top = parser.parse(query);
-          } catch (CQLParseException ex) {
+            CQLSortNode sn = CQLInspect.getSort(top);
+            if (sn != null) {
+              comp = InstanceComparator.get(sn);
+            }
+          } catch (CQLParseException | IllegalArgumentException ex) {
             logger.warn("CQLParseException: " + ex.getMessage());
             handler.handle(
               Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
@@ -294,17 +298,6 @@ public class Multiplexer implements CodexInstances {
             handler.handle(
               Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond500WithTextPlain(ex.getMessage())));
             return;
-          }
-          CQLSortNode sn = CQLInspect.getSort(top);
-          if (sn != null) {
-            try {
-              comp = InstanceComparator.get(sn);
-            } catch (IllegalArgumentException ex) {
-              handler.handle(
-                Future.succeededFuture(
-                  CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));
-              return;
-            }
           }
         }
         MergeRequest<Instance> mq = new MergeRequest<>();
