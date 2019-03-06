@@ -22,6 +22,9 @@ public class InstanceComparator {
   }
 
   static Comparator<Instance> get(CQLSortNode sn) {
+    if (sn == null) {
+      return null;
+    }
     Comparator<Instance> comp = null;
     Iterator<ModifierSet> it = sn.getSortIndexes().iterator();
     if (it.hasNext()) {

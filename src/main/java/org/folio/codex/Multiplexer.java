@@ -286,9 +286,7 @@ public class Multiplexer implements CodexInstances {
           try {
             top = parser.parse(query);
             CQLSortNode sn = CQLInspect.getSort(top);
-            if (sn != null) {
-              comp = InstanceComparator.get(sn);
-            }
+            comp = InstanceComparator.get(sn);
           } catch (CQLParseException | IllegalArgumentException ex) {
             logger.warn("CQLParseException: " + ex.getMessage());
             handler.handle(
