@@ -34,6 +34,13 @@ public class TestHelper {
         .withStatus(status)
         .withBody(responseBody)));
   }
+  public static void stubPackagesSources(String responseBody, int status, String moduleId) {
+    stubFor(get(new UrlPathPattern(new EqualToPattern("/codex-packages-sources"), false))
+      .withHeader(XOkapiHeaders.MODULE_ID, new EqualToPattern(moduleId))
+      .willReturn(new ResponseDefinitionBuilder()
+        .withStatus(status)
+        .withBody(responseBody)));
+  }
 
 
   public static void stubPackage(String responseBody, int status, String moduleId) {
