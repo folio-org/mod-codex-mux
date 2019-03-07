@@ -35,10 +35,10 @@ public class CodexPackagesSourcesImpl implements CodexPackagesSources {
     okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX_PACKAGES)
       .compose(modules ->
       okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
-        okapiHeaders.get(XOkapiHeaders.URL) + "/" + CodexInterfaces.CODEX_PACKAGES.getValue(),
+        okapiHeaders.get(XOkapiHeaders.URL) + "/" + CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(),
         SourceCollection.class))
-      .map(instances -> {
-        final List<Source> sourceList = instances.stream()
+      .map(packages -> {
+        final List<Source> sourceList = packages.stream()
           .filter(Optional::isPresent)
           .map(Optional::get)
           .flatMap(sourceCollection -> sourceCollection.getSources().stream())

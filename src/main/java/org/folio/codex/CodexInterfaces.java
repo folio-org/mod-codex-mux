@@ -2,7 +2,7 @@ package org.folio.codex;
 
 
 public enum CodexInterfaces {
-  CODEX("codex", "/codex-instances?"), CODEX_PACKAGES("codex-packages", "/codex-packages?");
+  CODEX("codex", "/codex-instances?"), CODEX_PACKAGES("codex-packages", "/codex-packages?"), CODEX_PACKAGES_SOURCES("codex-packages-sources", "/codex-packages-sources");
 
   private String value;
 
