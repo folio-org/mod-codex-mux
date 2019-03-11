@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import static org.folio.codex.TestHelper.readFile;
 import static org.folio.codex.TestHelper.stubModules;
-import static org.folio.codex.TestHelper.stubPackages;
+import static org.folio.codex.TestHelper.stubPackagesSources;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -91,8 +91,9 @@ public class CodexPackagesSourcesImplTest {
   public void shouldReturnListOfPackagesSources() throws IOException, URISyntaxException {
     String stubCodexPackageSource1 = readFile("codex/responses/codex-packages-sources.json");
     String stubCodexPackageSource2 = readFile("codex/responses/codex-packages-sources2.json");
-    stubPackages(stubCodexPackageSource1, 200, CODEX_PACKAGES_SOURCES_MODULE_1);
-    stubPackages(stubCodexPackageSource2, 200, CODEX_PACKAGES_SOURCES_MODULE_2);
+    stubPackagesSources(stubCodexPackageSource1, 200, CODEX_PACKAGES_SOURCES_MODULE_1);
+    stubPackagesSources(stubCodexPackageSource2, 200, CODEX_PACKAGES_SOURCES_MODULE_2);
+
 
     ObjectMapper mapper = new ObjectMapper();
     final SourceCollection codexPackagesSources1 = mapper.readValue(stubCodexPackageSource1, SourceCollection.class);
@@ -159,7 +160,7 @@ public class CodexPackagesSourcesImplTest {
 
   @Test
   public void shouldReturn500WhenConnectionToModuleFails() {
-    stubFor(get(new UrlPathPattern(new EqualToPattern(CODEX_PACKAGES_PATH), false))
+    stubFor(get(new UrlPathPattern(new EqualToPattern(CODEX_PACKAGES_SOURCES_PATH), false))
       .willReturn(new ResponseDefinitionBuilder().withFault(Fault.RANDOM_DATA_THEN_CLOSE)));
 
     int statusCode = RestAssured
