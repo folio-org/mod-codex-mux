@@ -11,6 +11,7 @@ import javax.ws.rs.core.Response;
 import org.folio.codex.Mock;
 import org.folio.codex.Multiplexer;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.resource.CodexInstances;
 
 public class CodexMuxImpl implements CodexInstances {
@@ -37,6 +38,7 @@ public class CodexMuxImpl implements CodexInstances {
   }
 
   @Override
+  @Validate
   public void getCodexInstances(String query, int offset, int limit, String lang,
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
     Context vertxContext) {
