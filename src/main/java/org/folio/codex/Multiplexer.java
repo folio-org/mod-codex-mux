@@ -37,6 +37,7 @@ import org.folio.codex.exception.QueryValidationException;
 import org.folio.codex.parser.InstanceCollectionParser;
 import org.folio.okapi.common.CQLUtil;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
@@ -237,6 +238,7 @@ public class Multiplexer implements CodexInstances {
   }
 
   @Override
+  @Validate
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
                                 Handler<AsyncResult<Response>> handler, Context vertxContext) {
     logger.info("Codex.mux getCodexInstances");

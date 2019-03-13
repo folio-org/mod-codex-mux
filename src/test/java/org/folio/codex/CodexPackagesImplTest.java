@@ -176,7 +176,7 @@ public class CodexPackagesImplTest {
       .log().ifValidationFails()
       .statusCode(200).extract().asString();
 
-    JSONAssert.assertEquals(response, stubPackagesCollectionResponse, true);
+    JSONAssert.assertEquals(response, stubPackagesCollectionResponse, false);
   }
 
   @Test
