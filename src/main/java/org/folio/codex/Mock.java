@@ -1,11 +1,5 @@
 package org.folio.codex;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -15,17 +9,27 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.ws.rs.core.Response;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import org.z3950.zing.cql.CQLNode;
+import org.z3950.zing.cql.CQLParseException;
+import org.z3950.zing.cql.CQLParser;
+import org.z3950.zing.cql.CQLSortNode;
+
+import org.folio.codex.comparator.InstanceComparator;
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
 import org.folio.rest.jaxrs.model.ResultInfo;
 import org.folio.rest.jaxrs.resource.CodexInstances;
-import org.z3950.zing.cql.CQLNode;
-import org.z3950.zing.cql.CQLParseException;
-import org.z3950.zing.cql.CQLParser;
-import org.z3950.zing.cql.CQLSortNode;
 
 @java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
 public class Mock implements CodexInstances {

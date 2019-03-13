@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
+import com.github.tomakehurst.wiremock.matching.RegexPattern;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
 import com.google.common.io.Files;
 
@@ -28,7 +29,7 @@ public class TestHelper {
   }
 
   public static void stubPackages(String responseBody, int status, String moduleId) {
-    stubFor(get(new UrlPathPattern(new EqualToPattern("/codex-packages"), false))
+    stubFor(get(new UrlPathPattern(new RegexPattern("/codex-packages.*"), true))
       .withHeader(XOkapiHeaders.MODULE_ID, new EqualToPattern(moduleId))
       .willReturn(new ResponseDefinitionBuilder()
         .withStatus(status)

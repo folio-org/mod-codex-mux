@@ -1,0 +1,70 @@
+{
+  "instances": [
+    {
+      "id": "0001",
+      "title": "Test instance title 1",
+      "series": "Test series 1",
+      "contributor": [
+        {
+          "type": "Personal name",
+          "name": "Doe, John"
+        },
+        {
+          "type": "Corporate name",
+          "name": "John William Doe"
+        }
+      ],
+      "subject": [],
+      "publisher": "Test publisher 1",
+      "date": "2000",
+      "type": "books",
+      "identifier": [
+        {
+          "value": "1111111",
+          "type": "ISBN"
+        },
+        {
+          "value": "222222222",
+          "type": "ISBN"
+        }
+      ],
+      "source": "local",
+      "language": [
+        "ger"
+      ]
+    },
+    {
+      "id": "0002",
+      "title": "Test instance title 2",
+      "contributor": [
+        {
+          "type": "Personal name",
+          "name": "Jane Doe"
+        }
+      ],
+      "subject": [],
+      "publisher": "Test publisher 2",
+      "date": "1980",
+      "type": "books",
+      "identifier": [
+        {
+          "value": "33333333",
+          "type": "System Control Number"
+        },
+        {
+          "value": "4444444",
+          "type": "Control Number"
+        }
+      ],
+      "source": "local",
+      "language": [
+        "eng"
+      ]
+    }
+  ],
+  "resultInfo": {
+    "totalRecords": 2,
+    "facets": [],
+    "diagnostics": []
+  }
+}
