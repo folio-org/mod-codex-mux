@@ -20,7 +20,6 @@
     {
       "id" : "codex-packages",
       "version" : "1.0",
-      "interfaceType": "multiple",
       "handlers" : [
         {
           "methods" : [ "GET" ],
