@@ -9,6 +9,7 @@ import org.folio.codex.CodexInterfaces;
 import org.folio.codex.OkapiClient;
 import org.folio.codex.exception.GetModulesFailException;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.Package;
 import org.folio.rest.jaxrs.resource.CodexPackages;
 
@@ -25,6 +26,7 @@ public class CodexPackagesImpl implements CodexPackages {
   private OkapiClient okapiClient = new OkapiClient();
 
   @Override
+  @Validate
   public void getCodexPackages(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     asyncResultHandler.handle(Future.succeededFuture(CodexPackages.GetCodexPackagesResponse.status(Response.Status.NOT_IMPLEMENTED).build()));
