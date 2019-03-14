@@ -1,3 +1,10 @@
+## 2.4.0 2019-03-14
+ * MODCXMUX-30 - Create common RAML definition for Packages endpoint
+ * MODCXMUX-31 Update Merge And Sort Code to handle added Package Type
+ * MODCXMUX-32 Implement GET Package by ID
+ * MODCXMUX-33 Implement GET Package Collection
+ * MODCXMUX-34 Implement GET Package Sources
+
 ## 2.3.0 2018-12-01
  * Update to RMB 23.2.1
  * MODCXMUX-29 Provide codex 3.2
