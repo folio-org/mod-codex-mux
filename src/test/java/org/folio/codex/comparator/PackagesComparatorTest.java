@@ -19,7 +19,7 @@ public class PackagesComparatorTest {
   private Package b = new Package().withName("test b");
   private Package c = new Package().withName("test c");
 
-  private Package [] sort(String cql, Package ... packages) throws QueryValidationException {
+  private Package [] sort(String cql, Package ... packages) {
 
     CQLParameters<Package> cqlParameters = new CQLParameters<>(cql);
     cqlParameters.setComparator(PackageComparator.get(cqlParameters.getCQLSortNode()));
@@ -29,27 +29,27 @@ public class PackagesComparatorTest {
   }
 
   @Test
-  public void sortByNameAscending() throws QueryValidationException {
+  public void sortByNameAscending() {
     assertThat(sort("cql.allRecords=1 sortBy name", c, a, b), is(arrayContaining(a, b, c)));
   }
 
   @Test
-  public void sortByNameDescending() throws QueryValidationException {
+  public void sortByNameDescending()  {
     assertThat(sort("cql.allRecords=1 sortBy name/desc", c, a, b), is(arrayContaining(c, b, a)));
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowExceptionWhenNotSupportedIndex() throws QueryValidationException {
+  public void shouldThrowExceptionWhenNotSupportedIndex() {
     sort("cql.allRecords=1 sortBy invalid");
   }
 
   @Test(expected = QueryValidationException.class)
-  public void shouldThrowExceptionWhenInvalidQuery() throws QueryValidationException {
+  public void shouldThrowExceptionWhenInvalidQuery()  {
     sort("(cql.allRecords=1) sort By invalid");
   }
 
   @Test
-  public void shouldNotReturnComparatorWhenQueryIsNull() throws QueryValidationException {
+  public void shouldNotReturnComparatorWhenQueryIsNull() {
     assertNull(new CQLParameters<>("cql.allRecords=1").getCQLSortNode());
   }
 

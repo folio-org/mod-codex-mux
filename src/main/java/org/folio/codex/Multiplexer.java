@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 import javax.ws.rs.core.Response;
@@ -82,53 +81,53 @@ public class Multiplexer implements CodexInstances {
   private OkapiClient okapiClient = new OkapiClient();
 
   @SuppressWarnings({"squid:S00107"})
-  private <T> void getByQuery(String module, MergeRequest<T> mq, String query,
-                                 int offset, int limit, CodexInterfaces codexInterface,
-                                 Function<String, CollectionExtension<T>> parser, Handler<AsyncResult<Void>> fut) {
+  private <T> void getByQuery(String module, MergeRequest<T> mergeRequest, String query, int offset, int limit,
+                              CodexInterfaces codexInterface, Function<String, CollectionExtension<T>> parser,
+                              Handler<AsyncResult<Void>> handler) {
 
-    HttpClient client = mq.getVertxContext().owner().createHttpClient();
+    HttpClient client = mergeRequest.getVertxContext().owner().createHttpClient();
 
-    String url = mq.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
+    String url = mergeRequest.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
     try {
       if (query != null) {
         url += "&query=" + URLEncoder.encode(query, "UTF-8");
       }
     } catch (UnsupportedEncodingException ex) {
-      fut.handle(Future.failedFuture(ex.getMessage()));
+      handler.handle(Future.failedFuture(ex.getMessage()));
       return;
     }
     logger.info("getByQuery url=" + url);
-    okapiClient.<T>getUrl(module, url, client, mq.getHeaders(), res -> {
+    okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders(), res -> {
       if (res.failed()) {
         logger.warn("getByQuery. getUrl failed " + res.cause());
-        fut.handle(Future.failedFuture(res.cause()));
+        handler.handle(Future.failedFuture(res.cause()));
       } else {
-        MuxCollection<T> mc = getMuxCollection(query, parser, fut, res);
-        if (mc == null) return;
-        mq.getMuxCollectionMap().put(module, mc);
-        fut.handle(Future.succeededFuture());
+        MuxCollection<T> muxCollection = getMuxCollection(query, parser, handler, res);
+        if (muxCollection == null) return;
+        mergeRequest.getMuxCollectionMap().put(module, muxCollection);
+        handler.handle(Future.succeededFuture());
       }
     });
   }
 
   private <T> MuxCollection<T> getMuxCollection(String query, Function<String, CollectionExtension<T>> parser,
-                                                Handler<AsyncResult<Void>> fut, AsyncResult<MuxCollection<T>> res) {
+                                                Handler<AsyncResult<Void>> handler, AsyncResult<MuxCollection<T>> res) {
     MuxCollection<T> muxCollection = res.result();
     if (muxCollection.statusCode == 200) {
       try {
-        JsonObject j = new JsonObject(muxCollection.message.toString());
-        if (j.getJsonObject(RESULT_INFO) == null) {
-          JsonObject ri = new JsonObject();
-          ri.put(TOTAL_RECORDS, j.remove(TOTAL_RECORDS));
-          ri.put("facets", new JsonArray());
-          ri.put("diagnostics", new JsonArray());
-          j.put(RESULT_INFO, ri);
+        JsonObject collectionJsonObject = new JsonObject(muxCollection.message.toString());
+        if (collectionJsonObject.getJsonObject(RESULT_INFO) == null) {
+          JsonObject resultInfo = new JsonObject();
+          resultInfo.put(TOTAL_RECORDS, collectionJsonObject.remove(TOTAL_RECORDS));
+          resultInfo.put("facets", new JsonArray());
+          resultInfo.put("diagnostics", new JsonArray());
+          collectionJsonObject.put(RESULT_INFO, resultInfo);
         }
-        muxCollection.colExt = parser.apply(j.encode());
+        muxCollection.colExt = parser.apply(collectionJsonObject.encode());
         muxCollection.query = query;
       } catch (Exception e) {
-        fut.handle(Future.failedFuture(e));
+        handler.handle(Future.failedFuture(e));
         return null;
       }
     }
@@ -136,7 +135,7 @@ public class Multiplexer implements CodexInstances {
   }
 
   public <T> Future<CollectionExtension<T>> mergeSort(List<String> modules, CQLParameters<T> cqlParameters,
-                                                      MergeRequest<T> mq, CodexInterfaces codexInterface,
+                                                      MergeRequest<T> mergeRequest, CodexInterfaces codexInterface,
                                                       Function<String, CollectionExtension<T>> parser) {
 
     List<Future> futures = new LinkedList<>();
@@ -144,96 +143,87 @@ public class Multiplexer implements CodexInstances {
       final CQLNode cqlNode = cqlParameters.getCqlNode();
       if (cqlNode == null) {
         Future fut = Future.future();
-        getByQuery(module, mq, null, 0, mq.getOffset() + mq.getLimit(), codexInterface, parser, fut);
+        getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
         futures.add(fut);
       } else {
         CQLNode node = filterSource(module, cqlNode);
         if (node != null) {
           Future fut = Future.future();
-          getByQuery(module, mq, node.toCQL(), 0, mq.getOffset() + mq.getLimit(), codexInterface, parser, fut);
+          getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
           futures.add(fut);
         }
       }
     }
-    Future<CollectionExtension<T>> future = Future.future();
-     CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        future.fail(res2.cause());
-      } else {
-        CollectionExtension<T> colExt = mergeSet2(mq, cqlParameters.getComparator());
-        future.complete(colExt);
-      }
-    });
-     return future;
+    return CompositeFuture.all(futures)
+      .map( o ->  mergeSet2(mergeRequest, cqlParameters.getComparator()));
   }
 
-  private <T> CollectionExtension<T> mergeSet2(MergeRequest<T> mq, Comparator<T> comp) {
+  private <T> CollectionExtension<T> mergeSet2(MergeRequest<T> mergeRequest, Comparator<T> comparator) {
 
     CollectionExtension<T> collectionExtension = new CollectionExtension<>();
-    final Map<String, MuxCollection<T>> muxCollectionMap = mq.getMuxCollectionMap();
+    final Map<String, MuxCollection<T>> muxCollectionMap = mergeRequest.getMuxCollectionMap();
     collectionExtension.setResultInfo(ResultInformation.createResultInfo(muxCollectionMap));
     collectionExtension.setItems(new ArrayList<>());
-    int[] ptrs = new int[muxCollectionMap.size()]; // all 0
-    for (int gOffset = 0; gOffset < mq.getOffset() + mq.getLimit(); gOffset++) {
+    int[] pointers = new int[muxCollectionMap.size()]; // all 0
+    for (int barrier = 0; barrier < mergeRequest.getOffset() + mergeRequest.getLimit(); barrier++) {
       T minElement = null;
-      int minI = -1;
-      int i = 0;
-      for (MuxCollection col : muxCollectionMap.values()) {
-        int idx = ptrs[i];
-        if (col.colExt != null) {
-          List<T> elements = col.colExt.getItems();
-          if (idx < elements.size()) {
-            T element = elements.get(idx);
+      int minIndex = -1;
+      int index = 0;
+      for (MuxCollection muxCollection : muxCollectionMap.values()) {
+        int pointer = pointers[index];
+        if (muxCollection.colExt != null) {
+          List<T> collection = muxCollection.colExt.getItems();
+          if (pointer < collection.size()) {
+            T element = collection.get(pointer);
             if (minElement == null
-              || (comp == null && ptrs[minI] > ptrs[i])
-              || (comp != null && comp.compare(minElement, element) > 0)) {
-              minI = i;
+              || (comparator == null && pointers[minIndex] > pointers[index])
+              || (comparator != null && comparator.compare(minElement, element) > 0)) {
+              minIndex = index;
               minElement = element;
             }
           }
         }
-        i++;
+        index++;
       }
       if (minElement == null) {
         break;
       }
-      ptrs[minI]++;
-      if (gOffset >= mq.getOffset()) {
+      pointers[minIndex]++;
+      if (barrier >= mergeRequest.getOffset()) {
         collectionExtension.getItems().add(minElement);
       }
     }
     return collectionExtension;
   }
 
-  private CQLNode filterSource(String mod, CQLNode top) {
-    CQLRelation rel = new CQLRelation("=");
-    Comparator<CQLTermNode> f1 = (CQLTermNode n1, CQLTermNode n2) -> {
-      if (n1.getIndex().equals(n2.getIndex()) && !n1.getTerm().equals(n2.getTerm())) {
-        return -1;
-      }
-      return 0;
-    };
-    Comparator<CQLTermNode> f2 = (CQLTermNode n1, CQLTermNode n2)
-      -> n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
+  private CQLNode filterSource(String moduleId, CQLNode top) {
+
+    CQLRelation relation = new CQLRelation("=");
+
+    Comparator<CQLTermNode> indexTermComparator = (CQLTermNode n1, CQLTermNode n2) ->
+      (n1.getIndex().equals(n2.getIndex()) && !n1.getTerm().equals(n2.getTerm())) ? -1 : 0;
+
+    Comparator<CQLTermNode> indexComparator = (CQLTermNode n1, CQLTermNode n2) -> n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
+
     CQLTermNode source = null;
-    if (mod.startsWith("mod-codex-ekb")) {
-      source = new CQLTermNode("source", rel, "kb");
-    } else if (mod.startsWith("mod-codex-inventory")) {
-      source = new CQLTermNode("source", rel, "local");
-    } else if (mod.startsWith("mod-agreements")) {
-      source = new CQLTermNode("source", rel, "localkb");
-    } else if (mod.startsWith("mock")) { // for Unit testing
-      source = new CQLTermNode("source", rel, mod);
+    if (moduleId.startsWith("mod-codex-ekb")) {
+      source = new CQLTermNode("source", relation, "kb");
+    } else if (moduleId.startsWith("mod-codex-inventory")) {
+      source = new CQLTermNode("source", relation, "local");
+    } else if (moduleId.startsWith("mod-agreements")) {
+      source = new CQLTermNode("source", relation, "localkb");
+    } else if (moduleId.startsWith("mock")) { // for Unit testing
+      source = new CQLTermNode("source", relation, moduleId);
     }
     if (source == null) {
       return top;
     } else {
-      if (!CQLUtil.eval(top, source, f1)) {
-        logger.info("Filter out module " + mod);
+      if (!CQLUtil.eval(top, source, indexTermComparator)) {
+        logger.info("Filter out module " + moduleId);
         return null;
       }
-      logger.info("Reducing query for module " + mod);
-      return CQLUtil.reducer(top, source, f2);
+      logger.info("Reducing query for module " + moduleId);
+      return CQLUtil.reducer(top, source, indexComparator);
     }
   }
 
@@ -255,7 +245,7 @@ public class Multiplexer implements CodexInstances {
         if (throwable instanceof GetModulesFailException){
           handler.handle(Future.succeededFuture(
             CodexInstances.GetCodexInstancesResponse.respond401WithTextPlain(throwable.getMessage())));
-        } else if (throwable.getCause() instanceof QueryValidationException || throwable instanceof IllegalArgumentException){
+        } else if (throwable instanceof QueryValidationException || throwable instanceof IllegalArgumentException){
           handler.handle(
             Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(throwable.getMessage())));
         } else {
@@ -267,29 +257,24 @@ public class Multiplexer implements CodexInstances {
   }
 
   private Future<CollectionExtension<Instance>> getInstanceCollectionExtension(String query, int offset, int limit,
-      Map<String, String> okapiHeaders, Context vertxContext, List<String> moduleList) {
-    try {
+    Map<String, String> okapiHeaders, Context vertxContext, List<String> moduleList) {
 
-      CQLParameters<Instance> cqlParameters = new CQLParameters<>(query);
-      cqlParameters.setComparator(InstanceComparator.get(cqlParameters.getCQLSortNode()));
+    CQLParameters<Instance> cqlParameters = new CQLParameters<>(query);
+    cqlParameters.setComparator(InstanceComparator.get(cqlParameters.getCQLSortNode()));
 
-      final MergeRequest<Instance> mergeRequest = new MergeRequest.MergeRequestBuilder<Instance>()
-        .setLimit(limit)
-        .setOffset(offset)
-        .setHeaders(okapiHeaders)
-        .setVertxContext(vertxContext)
-        .setMuxCollectionMap(new LinkedHashMap<>())
-        .build();
+    final MergeRequest<Instance> mergeRequest = new MergeRequest.MergeRequestBuilder<Instance>()
+      .setLimit(limit)
+      .setOffset(offset)
+      .setHeaders(okapiHeaders)
+      .setVertxContext(vertxContext)
+      .setMuxCollectionMap(new LinkedHashMap<>())
+      .build();
 
-      return mergeSort(moduleList, cqlParameters, mergeRequest, CodexInterfaces.CODEX,
-          InstanceCollectionParser::parseInstanceCollection).compose(instanceCollectionExtension -> {
-            analyzeResult(mergeRequest.getMuxCollectionMap(), instanceCollectionExtension);
-            return Future.succeededFuture(instanceCollectionExtension);
-          });
-
-    } catch (QueryValidationException e) {
-      throw new CompletionException(e);
-    }
+    return mergeSort(moduleList, cqlParameters, mergeRequest, CodexInterfaces.CODEX,
+        InstanceCollectionParser::parseInstanceCollection).compose(instanceCollectionExtension -> {
+          analyzeResult(mergeRequest.getMuxCollectionMap(), instanceCollectionExtension);
+          return Future.succeededFuture(instanceCollectionExtension);
+        });
   }
 
   @Override

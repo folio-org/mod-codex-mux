@@ -29,7 +29,7 @@ public class CQLParameters<T> {
     return Objects.isNull(cqlNode) ? null : CQLInspect.getSort(cqlNode);
   }
 
-  public CQLParameters(String query) throws QueryValidationException {
+  public CQLParameters(String query) {
     if (query != null) {
       cqlNode = parseQuery(query);
     }
@@ -39,7 +39,7 @@ public class CQLParameters<T> {
       this.comparator = comparatorClass;
   }
 
-  private CQLNode parseQuery(String query) throws QueryValidationException {
+  private CQLNode parseQuery(String query) {
     final CQLParser parser = new CQLParser(CQLParser.V1POINT2);
     try {
       return parser.parse(query);

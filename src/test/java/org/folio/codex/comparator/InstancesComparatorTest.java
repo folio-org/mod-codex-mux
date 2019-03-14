@@ -18,7 +18,7 @@ public class InstancesComparatorTest {
   private Instance b = new Instance().withTitle("b").withId("1").withDate("2008");
   private Instance c = new Instance().withTitle("c").withId("2").withDate("2006");
 
-  private Instance [] sort(String cql, Instance ... instances) throws QueryValidationException {
+  private Instance [] sort(String cql, Instance ... instances) {
 
       CQLParameters<Instance> cqlParameters = new CQLParameters<>(cql);
       cqlParameters.setComparator(InstanceComparator.get(cqlParameters.getCQLSortNode()));
@@ -28,47 +28,47 @@ public class InstancesComparatorTest {
   }
 
   @Test
-  public void sortTitleAscending() throws QueryValidationException {
+  public void sortTitleAscending() {
     assertThat(sort("cql.allRecords=1 sortBy title", c, a, b), is(arrayContaining(a, b, c)));
   }
 
   @Test
-  public void sortIdAscending() throws QueryValidationException {
+  public void sortIdAscending() {
     assertThat(sort("cql.allRecords=1 sortBy id", c, a, b), is(arrayContaining(b, c, a)));
   }
 
   @Test
-  public void sortDateAscending() throws QueryValidationException {
+  public void sortDateAscending() {
     assertThat(sort("cql.allRecords=1 sortBy date", c, a, b), is(arrayContaining(c, a, b)));
   }
 
   @Test
-  public void sortTitleDescending() throws QueryValidationException {
+  public void sortTitleDescending() {
     assertThat(sort("cql.allRecords=1 sortBy title/desc", c, a, b), is(arrayContaining(c, b, a)));
   }
 
   @Test
-  public void sortIdDescending() throws QueryValidationException {
+  public void sortIdDescending() {
     assertThat(sort("cql.allRecords=1 sortBy id/descending", c, a, b), is(arrayContaining(a, c, b)));
   }
 
   @Test
-  public void sortDateDescending() throws QueryValidationException {
+  public void sortDateDescending() {
     assertThat(sort("cql.allRecords=1 sortBy date/descending", c, a, b), is(arrayContaining(b, a, c)));
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowExceptionWhenNotSupportedIndex() throws QueryValidationException {
+  public void shouldThrowExceptionWhenNotSupportedIndex() {
     sort("cql.allRecords=1 sortBy invalid");
   }
 
   @Test(expected = QueryValidationException.class)
-  public void shouldThrowExceptionWhenInvalidQuery() throws QueryValidationException {
+  public void shouldThrowExceptionWhenInvalidQuery() {
     sort("(cql.allRecords=1) sort By invalid");
   }
 
   @Test
-  public void shouldNotReturnComparatorWhenQueryIsNull() throws QueryValidationException {
+  public void shouldNotReturnComparatorWhenQueryIsNull() {
     assertNull(new CQLParameters<>("cql.allRecords=1").getCQLSortNode());
   }
 

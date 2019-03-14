@@ -1,6 +1,6 @@
 package org.folio.codex.exception;
 
-public class QueryValidationException extends Exception {
+public class QueryValidationException extends RuntimeException {
   /**
    * The CQL query passed does not appear to be valid.
    */

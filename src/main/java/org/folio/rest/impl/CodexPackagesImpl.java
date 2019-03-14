@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 
 import javax.ws.rs.core.Response;
 
@@ -57,7 +56,7 @@ public class CodexPackagesImpl implements CodexPackages {
         if (throwable instanceof GetModulesFailException){
           asyncResultHandler.handle(Future.succeededFuture(
             CodexPackages.GetCodexPackagesResponse.respond401WithTextPlain(throwable.getMessage())));
-        } else if (throwable.getCause() instanceof QueryValidationException || throwable instanceof IllegalArgumentException){
+        } else if (throwable instanceof QueryValidationException || throwable instanceof IllegalArgumentException){
           asyncResultHandler.handle(Future.succeededFuture(
             CodexPackages.GetCodexPackagesResponse.respond400WithTextPlain(throwable.getMessage())));
         } else{
@@ -71,27 +70,22 @@ public class CodexPackagesImpl implements CodexPackages {
   private Future<Multiplexer.CollectionExtension<Package>> getPackageCollectionExtension(
     String query, int offset, int limit, Map<String, String> okapiHeaders, Context vertxContext, List<String> moduleList) {
 
-    try {
+    CQLParameters<Package> cqlParameters = new CQLParameters<>(query);
+    cqlParameters.setComparator(PackageComparator.get(cqlParameters.getCQLSortNode()));
 
-      CQLParameters<Package> cqlParameters = new CQLParameters<>(query);
-      cqlParameters.setComparator(PackageComparator.get(cqlParameters.getCQLSortNode()));
+    final MergeRequest<Package> mergeRequest = new MergeRequest.MergeRequestBuilder<Package>()
+      .setLimit(limit)
+      .setOffset(offset)
+      .setVertxContext(vertxContext)
+      .setHeaders(okapiHeaders)
+      .setMuxCollectionMap(new LinkedHashMap<>())
+      .build();
 
-      final MergeRequest<Package> mergeRequest = new MergeRequest.MergeRequestBuilder<Package>()
-        .setLimit(limit)
-        .setOffset(offset)
-        .setVertxContext(vertxContext)
-        .setHeaders(okapiHeaders)
-        .setMuxCollectionMap(new LinkedHashMap<>())
-        .build();
-
-      return multiplexer.mergeSort(moduleList, cqlParameters, mergeRequest, CodexInterfaces.CODEX_PACKAGES,
-          PackageCollectionParser::parsePackageCollection).compose(packageCollectionExtension -> {
-            analyzeResult(mergeRequest.getMuxCollectionMap(), packageCollectionExtension);
-            return Future.succeededFuture(packageCollectionExtension);
-          });
-    } catch (QueryValidationException e) {
-      throw new CompletionException(e);
-    }
+    return multiplexer.mergeSort(moduleList, cqlParameters, mergeRequest, CodexInterfaces.CODEX_PACKAGES,
+      PackageCollectionParser::parsePackageCollection).compose(packageCollectionExtension -> {
+        analyzeResult(mergeRequest.getMuxCollectionMap(), packageCollectionExtension);
+        return Future.succeededFuture(packageCollectionExtension);
+      });
   }
 
   @Override
