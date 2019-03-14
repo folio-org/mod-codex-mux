@@ -38,7 +38,7 @@ public class CodexPackagesSourcesImpl implements CodexPackagesSources {
         okapiHeaders.get(XOkapiHeaders.URL) + "/" + CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(),
         SourceCollection.class))
       .map(packages -> {
-        final List<Source> sourceList = packages.stream()
+        final List<Source> sourceList = packages
           .filter(Optional::isPresent)
           .map(Optional::get)
           .flatMap(sourceCollection -> sourceCollection.getSources().stream())

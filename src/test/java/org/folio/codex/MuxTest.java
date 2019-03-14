@@ -1,5 +1,14 @@
 package org.folio.codex;
 
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Header;
 import com.jayway.restassured.response.Response;
@@ -15,26 +24,18 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.Diagnostic;
 import org.folio.rest.jaxrs.model.Instance;
 import org.folio.rest.jaxrs.model.InstanceCollection;
-import org.junit.Test;
 
 @RunWith(VertxUnitRunner.class)
 public class MuxTest {
@@ -467,7 +468,7 @@ public class MuxTest {
       .get("/codex-instances")
       .then()
       .log().ifValidationFails()
-      .statusCode(401).extract().response();
+      .statusCode(400).extract().response();
 
     r = RestAssured.given()
       .header(tenantHeader)
@@ -486,7 +487,7 @@ public class MuxTest {
       .get("/codex-instances/11224467")
       .then()
       .log().ifValidationFails()
-      .statusCode(401);
+      .statusCode(400);
 
     RestAssured.given()
       .header(tenantHeader)

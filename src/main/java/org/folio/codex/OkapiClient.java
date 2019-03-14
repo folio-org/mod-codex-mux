@@ -5,10 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.folio.codex.exception.GetModulesFailException;
-import org.folio.okapi.common.XOkapiHeaders;
+import java.util.stream.Stream;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
@@ -25,6 +22,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import org.folio.codex.exception.GetModulesFailException;
+import org.folio.okapi.common.XOkapiHeaders;
+
 public class OkapiClient {
   private static Logger logger = LoggerFactory.getLogger(OkapiClient.class);
 
@@ -37,8 +37,8 @@ public class OkapiClient {
    * @param url url of requests
    * @param responseClass class of retrieved objects
    */
-  public <T> Future<List<Optional<T>>> getOptionalObjects(Context vertxContext, Map<String, String> headers,
-                                                          List<String> modules, String url, Class<T> responseClass) {
+  public <T> Future<Stream<Optional<T>>> getOptionalObjects(Context vertxContext, Map<String, String> headers,
+                                                            List<String> modules, String url, Class<T> responseClass) {
     List<Future<Optional<T>>> futures = new ArrayList<>();
     for (String module : modules) {
       Future<Optional<T>> future = getObject(module, vertxContext, headers,
@@ -46,11 +46,7 @@ public class OkapiClient {
       futures.add(future);
     }
     return CompositeFuture.all(new ArrayList<>(futures))
-      .map(compositeFuture ->
-        futures.stream()
-          .map(Future::result)
-          .collect(Collectors.toList())
-      );
+      .map(compositeFuture -> futures.stream().map(Future::result));
   }
 
   private <T> Future<Optional<T>> getObject(String module, Context vertxContext, Map<String, String> okapiHeaders,
@@ -108,43 +104,31 @@ public class OkapiClient {
   }
 
   /**
-   * Similar to getModules method, but this method returns a future instead of using handler
+   * Method to return a future with module names instead of using handler.
    */
-  public Future<List<String>> getModuleList(Context vertxContext, Map<String, String> headers,
-                                            CodexInterfaces supportedInterface) {
-    Future<List<String>> future = Future.future();
-    getModules(headers, vertxContext, supportedInterface, result -> {
-      if (result.failed()) {
-        future.fail(new GetModulesFailException(result.cause().getMessage(), result.cause()));
-      } else {
-        future.complete(result.result());
-      }
-    });
-    return future;
-  }
 
-  public void getModules(Map<String, String> okapiHeaders, Context vertxContext,
-                         final CodexInterfaces supportedInterface, Handler<AsyncResult<List<String>>> fut) {
+  public Future<List<String>> getModuleList(Context vertxContext, Map<String, String> okapiHeaders,
+                                            final CodexInterfaces supportedInterface) {
+    Future<List<String>> future = Future.future();
+
     final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
     if (okapiUrl == null) {
-      fut.handle(Future.failedFuture("missing " + XOkapiHeaders.URL));
-      return;
+      future.fail(new GetModulesFailException("missing " + XOkapiHeaders.URL));
     }
     final String tenant = okapiHeaders.get(XOkapiHeaders.TENANT);
 
     HttpClient client = vertxContext.owner().createHttpClient();
     final String absUrl = okapiUrl + "/_/proxy/tenants/" + tenant + "/interfaces/" + supportedInterface.getValue();
-    logger.info("codex.mux getModules url=" + absUrl);
+    logger.info("codex.mux getModuleList url=" + absUrl);
     HttpClientRequest req = client.getAbs(absUrl, res -> {
       if (res.statusCode() != 200) {
         client.close();
-        fut.handle(Future.failedFuture("Get " + absUrl + " returned status " + res.statusCode()));
-        return;
+        future.fail(new GetModulesFailException("Get " + absUrl + " returned status " + res.statusCode()));
       }
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(r -> {
-        logger.info("codex.mux getModules got " + b.toString());
+        logger.info("codex.mux getModuleList got " + b.toString());
         client.close();
         List<String> l = new LinkedList<>();
         JsonArray a = null;
@@ -152,7 +136,7 @@ public class OkapiClient {
           a = b.toJsonArray();
         } catch (DecodeException ex) {
           logger.warn(ex.getMessage());
-          fut.handle(Future.failedFuture(ex.getMessage()));
+          future.fail(new GetModulesFailException(ex.getMessage()));
         }
         if (a != null) {
           for (int i = 0; i < a.size(); i++) {
@@ -162,7 +146,7 @@ public class OkapiClient {
               l.add(m);
             }
           }
-          fut.handle(Future.succeededFuture(l));
+          future.complete(l);
         }
       });
     });
@@ -170,9 +154,10 @@ public class OkapiClient {
       req.putHeader(e.getKey(), e.getValue());
     }
     req.exceptionHandler(r -> {
-      fut.handle(Future.failedFuture("Get " + absUrl + " returned exception " + r.getMessage()));
+      future.fail(new GetModulesFailException("Get " + absUrl + " returned exception " + r.getMessage()));
       client.close();
     });
     req.end();
+    return future;
   }
 }

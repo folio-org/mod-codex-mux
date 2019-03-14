@@ -1,0 +1,37 @@
+{
+  "packages": [
+    {
+      "id": "1111-0000",
+      "name": "Test package 1",
+      "type": "onlinereference",
+      "providerId": "1111",
+      "provider": "test",
+      "itemCount": 1,
+      "coverage": {
+        "beginCoverage": "",
+        "endCoverage": ""
+      },
+      "isSelected": "Yes",
+      "source": "kb"
+    },
+    {
+      "id": "111-0000",
+      "name": "Test package 2",
+      "type": "ebook",
+      "providerId": "111",
+      "provider": "test",
+      "itemCount": 11,
+      "coverage": {
+        "beginCoverage": "2018-08-13",
+        "endCoverage": "2018-09-13"
+      },
+      "isSelected": "Yes",
+      "source": "kb"
+    }
+  ],
+  "resultInfo": {
+    "totalRecords": 2,
+    "facets": [],
+    "diagnostics": []
+  }
+}

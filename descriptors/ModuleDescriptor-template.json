@@ -23,14 +23,10 @@
       "handlers" : [
         {
           "methods" : [ "GET" ],
-          "pathPattern" : "/codex-packages",
-          "permissionsRequired" : [ "codex.packages.collection.get" ],
-          "modulePermissions": ["configuration.entries.collection.get"]
+          "pathPattern" : "/codex-packages"
         }, {
           "methods" : [ "GET" ],
-          "pathPattern" : "/codex-packages/{id}",
-          "permissionsRequired" : [ "codex.packages.item.get" ],
-          "modulePermissions": ["configuration.entries.collection.get"]
+          "pathPattern" : "/codex-packages/{id}"
         },
         {
           "methods": ["GET"],
