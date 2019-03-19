@@ -1,3 +1,6 @@
+## 2.5.0 2019-03-19
+ * MODCXMUX-47 - Fix failing API Tests - Updated path for downloaded schemas
+
 ## 2.4.0 2019-03-14
  * MODCXMUX-30 - Create common RAML definition for Packages endpoint
  * MODCXMUX-31 Update Merge And Sort Code to handle added Package Type
