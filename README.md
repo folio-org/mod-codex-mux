@@ -21,3 +21,8 @@ with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.
 See project [MODCXMUX](https://issues.folio.org/browse/MODCXMUX)
 at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker).
 
+### ModuleDescriptor
+
+See the built `target/ModuleDescriptor.json` for the interfaces that this module
+requires and provides, the permissions, and the additional module metadata.
+
