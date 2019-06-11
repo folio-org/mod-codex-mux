@@ -1,3 +1,7 @@
+## 2.6.0 2019-06-11
+ * MODCXMUX-36 - Implement GET Instance Sources
+ * MODCXMUX-37 - Create RAML for GET codex-instances-sources
+
 ## 2.5.0 2019-03-19
  * MODCXMUX-47 - Fix failing API Tests - Updated path for downloaded schemas
 
