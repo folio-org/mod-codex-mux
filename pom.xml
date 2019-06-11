@@ -20,6 +20,8 @@
     <ramlfiles_path>${basedir}/ramls/raml-util/ramls/codex</ramlfiles_path>
     <jsonschema_paths>raml-util/schemas,raml-util/schemas/codex</jsonschema_paths>
     <vertx-version>3.5.4</vertx-version>
+    <jackson.version>2.9.9</jackson.version>
+    <rest.assured.version>2.8.0</rest.assured.version>
   </properties>
 
   <repositories>
@@ -64,12 +66,12 @@
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
-      <version>23.6.0</version>
+      <version>25.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.folio.okapi</groupId>
       <artifactId>okapi-common</artifactId>
-      <version>2.9.0</version>
+      <version>2.30.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -80,14 +82,14 @@
     <dependency>
       <groupId>com.jayway.restassured</groupId>
       <artifactId>rest-assured-common</artifactId>
-      <version>2.8.0</version>
+      <version>${rest.assured.version}</version>
       <scope>test</scope>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>com.jayway.restassured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>2.8.0</version>
+      <version>${rest.assured.version}</version>
       <scope>test</scope>
       <type>jar</type>
     </dependency>
@@ -127,7 +129,12 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.8.11</version>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.jaxrs</groupId>
+      <artifactId>jackson-jaxrs-json-provider</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
   </dependencies>
 
