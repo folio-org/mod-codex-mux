@@ -10,17 +10,20 @@
         {
           "methods": ["GET"],
           "pathPattern": "/codex-instances",
-          "permissionsRequired": ["codex-mux.instances.collection.get"]
+          "permissionsRequired": ["codex-mux.instances.collection.get"],
+          "modulePermissions": ["codex-ekb.instances.collection.get"]
         },
         {
           "methods": ["GET"],
           "pathPattern": "/codex-instances/{id}",
-          "permissionsRequired": ["codex-mux.instances.item.get"]
+          "permissionsRequired": ["codex-mux.instances.item.get"],
+          "modulePermissions": ["codex-ekb.instances.item.get"]
         },
         {
           "methods": ["GET"],
           "pathPattern": "/codex-instances-sources",
-          "permissionsRequired": ["codex-mux.instances-sources.collection.get"]
+          "permissionsRequired": ["codex-mux.instances-sources.collection.get"],
+          "modulePermissions": ["codex-ekb.instances-sources.collection.get"]
         }
       ]
     },
@@ -31,15 +34,18 @@
         {
           "methods" : [ "GET" ],
           "pathPattern" : "/codex-packages",
-          "permissionsRequired": ["codex-mux.packages.collection.get"]
+          "permissionsRequired": ["codex-mux.packages.collection.get"],
+          "modulePermissions": ["codex-ekb.packages.collection.get"]
         }, {
           "methods" : [ "GET" ],
           "pathPattern" : "/codex-packages/{id}",
-          "permissionsRequired": ["codex-mux.packages.item.get"]
+          "permissionsRequired": ["codex-mux.packages.item.get"],
+          "modulePermissions": ["codex-ekb.packages.item.get"]
         }, {
           "methods": ["GET"],
           "pathPattern": "/codex-packages-sources",
-          "permissionsRequired": ["codex-mux.packages-sources.collection.get"]
+          "permissionsRequired": ["codex-mux.packages-sources.collection.get"],
+          "modulePermissions": ["codex-ekb.packages-sources.collection.get"]
         }
       ]
     },
