@@ -17,6 +17,6 @@ public class CodexInstancesSourcesImpl implements CodexInstancesSources {
                                        Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     asyncResultHandler.handle(Future.succeededFuture(
-      GetCodexInstancesSourcesResponse.status(Response.Status.NOT_IMPLEMENTED).build()));
+      Response.status(Response.Status.NOT_IMPLEMENTED).build()));
   }
 }

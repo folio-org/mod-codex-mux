@@ -20,12 +20,14 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.WebClient;
+
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLTermNode;
@@ -85,7 +87,7 @@ public class Multiplexer implements CodexInstances {
                               CodexInterfaces codexInterface, Function<String, CollectionExtension<T>> parser,
                               Handler<AsyncResult<Void>> handler) {
 
-    HttpClient client = mergeRequest.getVertxContext().owner().createHttpClient();
+    WebClient client = WebClient.wrap(mergeRequest.getVertxContext().owner().createHttpClient());
 
     String url = mergeRequest.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
@@ -142,15 +144,15 @@ public class Multiplexer implements CodexInstances {
     for (String module : modules) {
       final CQLNode cqlNode = cqlParameters.getCqlNode();
       if (cqlNode == null) {
-        Future fut = Future.future();
-        getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
-        futures.add(fut);
+        Promise promise = Promise.promise();
+        getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
+        futures.add(promise.future());
       } else {
         CQLNode node = filterSource(module, cqlNode);
         if (node != null) {
-          Future fut = Future.future();
-          getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
-          futures.add(fut);
+          Promise promise = Promise.promise();
+          getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
+          futures.add(promise.future());
         }
       }
     }
