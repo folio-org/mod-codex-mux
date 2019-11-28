@@ -87,7 +87,7 @@ public class Multiplexer implements CodexInstances {
                               CodexInterfaces codexInterface, Function<String, CollectionExtension<T>> parser,
                               Handler<AsyncResult<Void>> handler) {
 
-    WebClient client = WebClient.wrap(mergeRequest.getVertxContext().owner().createHttpClient());
+    WebClient client = WebClient.create(mergeRequest.getVertxContext().owner());
 
     String url = mergeRequest.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
@@ -100,17 +100,19 @@ public class Multiplexer implements CodexInstances {
       return;
     }
     logger.info("getByQuery url=" + url);
-    okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders(), res -> {
-      if (res.failed()) {
-        logger.warn("getByQuery. getUrl failed " + res.cause());
-        handler.handle(Future.failedFuture(res.cause()));
-      } else {
-        MuxCollection<T> muxCollection = getMuxCollection(query, parser, handler, res);
-        if (muxCollection == null) return;
-        mergeRequest.getMuxCollectionMap().put(module, muxCollection);
-        handler.handle(Future.succeededFuture());
-      }
-    });
+    okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders())
+      .setHandler(res -> {
+        client.close();
+        if (res.failed()) {
+          logger.warn("getByQuery. getUrl failed " + res.cause());
+          handler.handle(Future.failedFuture(res.cause()));
+        } else {
+          MuxCollection<T> muxCollection = getMuxCollection(query, parser, handler, res);
+          if (muxCollection == null) return;
+          mergeRequest.getMuxCollectionMap().put(module, muxCollection);
+          handler.handle(Future.succeededFuture());
+        }
+      });
   }
 
   private <T> MuxCollection<T> getMuxCollection(String query, Function<String, CollectionExtension<T>> parser,
@@ -144,13 +146,13 @@ public class Multiplexer implements CodexInstances {
     for (String module : modules) {
       final CQLNode cqlNode = cqlParameters.getCqlNode();
       if (cqlNode == null) {
-        Promise promise = Promise.promise();
+        Promise<Void> promise = Promise.promise();
         getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
         futures.add(promise.future());
       } else {
         CQLNode node = filterSource(module, cqlNode);
         if (node != null) {
-          Promise promise = Promise.promise();
+          Promise<Void> promise = Promise.promise();
           getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
           futures.add(promise.future());
         }
