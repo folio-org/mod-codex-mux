@@ -8,7 +8,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.folio.codex.exception.GetModulesFailException;
+import org.folio.common.OkapiParams;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.util.FutureUtils;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
@@ -101,19 +103,14 @@ public class OkapiClient {
    * Method to return a future with module names instead of using handler.
    */
 
-  public Future<List<String>> getModuleList(Context vertxContext, Map<String, String> okapiHeaders,
+  public Future<List<String>> getModuleList(Context vertxContext, OkapiParams okapiParams,
                                             final CodexInterfaces supportedInterface) {
-    final String okapiUrl = okapiHeaders.get(XOkapiHeaders.URL);
-    if (okapiUrl == null) {
-      return Future.failedFuture(new GetModulesFailException("missing " + XOkapiHeaders.URL));
-    }
-    final String tenant = okapiHeaders.get(XOkapiHeaders.TENANT);
-
     WebClient client = WebClient.create(vertxContext.owner());
-    final String absUrl = okapiUrl + "/_/proxy/tenants/" + tenant + "/interfaces/" + supportedInterface.getValue();
-    logger.info("codex.mux getModuleList url=" + absUrl);
-    HttpRequest<Buffer> request = client.getAbs(absUrl);
-    okapiHeaders.forEach(request::putHeader);
+    String requestURI = "/_/proxy/tenants/" + okapiParams.getTenant() + "/interfaces/" + supportedInterface.getValue();
+    logger.info("codex.mux getModuleList uri=" + requestURI + " with parameters " + okapiParams);
+    HttpRequest<Buffer> request = client.get(okapiParams.getPort(), okapiParams.getHost(),
+      requestURI);
+    okapiParams.getHeadersAsMap().forEach(request::putHeader);
     Promise<HttpResponse<Buffer>> responsePromise = Promise.promise();
     request
       .send(responsePromise);
@@ -122,7 +119,7 @@ public class OkapiClient {
       .future()
       .map(response -> {
         if (response.statusCode() != 200) {
-          throw new GetModulesFailException("Get " + absUrl + " returned status " + response.statusCode());
+          throw new GetModulesFailException("Get " + requestURI + " with parameters " + okapiParams + " returned status " + response.statusCode());
         }
         Buffer buffer = response.body() != null ? response.body() : Buffer.buffer();
         logger.info("codex.mux getModuleList got " + buffer.toString());
@@ -141,8 +138,7 @@ public class OkapiClient {
         client.close();
         completePromiseWithResult(promise, result);
       });
-
-    return promise.future();
+    return FutureUtils.wrapExceptions(promise.future(), GetModulesFailException.class);
   }
 
   private void completePromiseWithResult(Promise<List<String>> promise, AsyncResult<List<String>> result) {

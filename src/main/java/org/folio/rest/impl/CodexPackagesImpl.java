@@ -25,6 +25,7 @@ import org.folio.codex.comparator.PackageComparator;
 import org.folio.codex.exception.GetModulesFailException;
 import org.folio.codex.exception.QueryValidationException;
 import org.folio.codex.parser.PackageCollectionParser;
+import org.folio.common.OkapiParams;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.Package;
@@ -42,7 +43,17 @@ public class CodexPackagesImpl implements CodexPackages {
   public void getCodexPackages(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX_PACKAGES)
+    OkapiParams okapiParams;
+    try{
+      okapiParams = new OkapiParams(okapiHeaders);
+    }
+    catch (IllegalArgumentException ex){
+      asyncResultHandler.handle(
+        Future.succeededFuture(CodexPackages.GetCodexPackagesResponse.respond400WithTextPlain("Validation of okapi headers failed: " + ex.getMessage())));
+      return;
+    }
+
+    okapiClient.getModuleList(vertxContext, okapiParams, CodexInterfaces.CODEX_PACKAGES)
       .compose(moduleList -> getPackageCollectionExtension(query, offset, limit, okapiHeaders, vertxContext, moduleList))
       .map(packageCollectionExtension -> {
         asyncResultHandler.handle(Future.succeededFuture(
@@ -93,7 +104,21 @@ public class CodexPackagesImpl implements CodexPackages {
                                    Handler<AsyncResult<Response>> handler, Context vertxContext) {
 
     logger.info("CodexPackagesImpl#getCodexPackagesById");
-    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX_PACKAGES)
+
+    OkapiParams okapiParams;
+    try{
+      okapiParams = new OkapiParams(okapiHeaders);
+    }
+    catch (IllegalArgumentException ex){
+      handler.handle(
+        Future.succeededFuture(Response.status(400)
+          .header("Content-Type", "text/plain")
+          .entity("Validation of okapi headers failed: " + ex.getMessage())
+          .build()));
+      return;
+    }
+
+    okapiClient.getModuleList(vertxContext, okapiParams, CodexInterfaces.CODEX_PACKAGES)
       .compose(modules ->
         okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
           okapiHeaders.get(XOkapiHeaders.URL) + "/codex-packages/" + id, Package.class))
