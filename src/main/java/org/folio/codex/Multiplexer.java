@@ -20,12 +20,15 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.WebClient;
+
+import org.folio.common.OkapiParams;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLTermNode;
@@ -85,7 +88,7 @@ public class Multiplexer implements CodexInstances {
                               CodexInterfaces codexInterface, Function<String, CollectionExtension<T>> parser,
                               Handler<AsyncResult<Void>> handler) {
 
-    HttpClient client = mergeRequest.getVertxContext().owner().createHttpClient();
+    WebClient client = WebClient.create(mergeRequest.getVertxContext().owner());
 
     String url = mergeRequest.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
@@ -98,17 +101,19 @@ public class Multiplexer implements CodexInstances {
       return;
     }
     logger.info("getByQuery url=" + url);
-    okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders(), res -> {
-      if (res.failed()) {
-        logger.warn("getByQuery. getUrl failed " + res.cause());
-        handler.handle(Future.failedFuture(res.cause()));
-      } else {
-        MuxCollection<T> muxCollection = getMuxCollection(query, parser, handler, res);
-        if (muxCollection == null) return;
-        mergeRequest.getMuxCollectionMap().put(module, muxCollection);
-        handler.handle(Future.succeededFuture());
-      }
-    });
+    okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders())
+      .setHandler(res -> {
+        client.close();
+        if (res.failed()) {
+          logger.warn("getByQuery. getUrl failed " + res.cause());
+          handler.handle(Future.failedFuture(res.cause()));
+        } else {
+          MuxCollection<T> muxCollection = getMuxCollection(query, parser, handler, res);
+          if (muxCollection == null) return;
+          mergeRequest.getMuxCollectionMap().put(module, muxCollection);
+          handler.handle(Future.succeededFuture());
+        }
+      });
   }
 
   private <T> MuxCollection<T> getMuxCollection(String query, Function<String, CollectionExtension<T>> parser,
@@ -142,15 +147,15 @@ public class Multiplexer implements CodexInstances {
     for (String module : modules) {
       final CQLNode cqlNode = cqlParameters.getCqlNode();
       if (cqlNode == null) {
-        Future fut = Future.future();
-        getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
-        futures.add(fut);
+        Promise<Void> promise = Promise.promise();
+        getByQuery(module, mergeRequest, null, 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
+        futures.add(promise.future());
       } else {
         CQLNode node = filterSource(module, cqlNode);
         if (node != null) {
-          Future fut = Future.future();
-          getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, fut);
-          futures.add(fut);
+          Promise<Void> promise = Promise.promise();
+          getByQuery(module, mergeRequest, node.toCQL(), 0, mergeRequest.getOffset() + mergeRequest.getLimit(), codexInterface, parser, promise);
+          futures.add(promise.future());
         }
       }
     }
@@ -232,7 +237,17 @@ public class Multiplexer implements CodexInstances {
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
                                 Handler<AsyncResult<Response>> handler, Context vertxContext) {
     logger.info("Codex.mux getCodexInstances");
-    okapiClient.getModuleList(vertxContext, okapiHeaders,CodexInterfaces.CODEX)
+    OkapiParams okapiParams;
+    try{
+      okapiParams = new OkapiParams(okapiHeaders);
+    }
+    catch (IllegalArgumentException ex){
+      handler.handle(
+        Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain("Validation of okapi headers failed: " + ex.getMessage())));
+      return;
+    }
+
+    okapiClient.getModuleList(vertxContext, okapiParams, CodexInterfaces.CODEX)
       .compose(moduleList -> getInstanceCollectionExtension(query, offset, limit, okapiHeaders, vertxContext, moduleList))
       .map(instanceCollectionExtension -> {
         handler.handle(Future.succeededFuture(GetCodexInstancesResponse.respond200WithApplicationJson(
@@ -282,7 +297,21 @@ public class Multiplexer implements CodexInstances {
     Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> handler,
     Context vertxContext) {
     logger.info("Codex.mux getCodexInstancesById");
-    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX)
+
+    OkapiParams okapiParams;
+    try{
+      okapiParams = new OkapiParams(okapiHeaders);
+    }
+    catch (IllegalArgumentException ex){
+      handler.handle(
+        Future.succeededFuture(Response.status(400)
+          .header("Content-Type", "text/plain")
+          .entity("Validation of okapi headers failed: " + ex.getMessage())
+          .build()));
+      return;
+    }
+
+    okapiClient.getModuleList(vertxContext, okapiParams, CodexInterfaces.CODEX)
       .compose(modules -> okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
         okapiHeaders.get(XOkapiHeaders.URL) + "/codex-instances/" + id , Instance.class))
       .map(optionalInstances -> {

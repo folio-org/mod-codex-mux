@@ -17,6 +17,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.folio.codex.CodexInterfaces;
 import org.folio.codex.OkapiClient;
 import org.folio.codex.exception.GetModulesFailException;
+import org.folio.common.OkapiParams;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.Source;
 import org.folio.rest.jaxrs.model.SourceCollection;
@@ -30,9 +31,18 @@ public class CodexPackagesSourcesImpl implements CodexPackagesSources {
                                       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     logger.info("CodexPackagesSourcesImpl#getCodexPackagesSources");
+    OkapiParams okapiParams;
+    try{
+      okapiParams = new OkapiParams(okapiHeaders);
+    }
+    catch (IllegalArgumentException ex){
+      asyncResultHandler.handle(
+        Future.succeededFuture(CodexPackagesSources.GetCodexPackagesSourcesResponse.respond400WithTextPlain("Validation of okapi headers failed: " + ex.getMessage())));
+      return;
+    }
 
     OkapiClient okapiClient = new OkapiClient();
-    okapiClient.getModuleList(vertxContext, okapiHeaders, CodexInterfaces.CODEX_PACKAGES)
+    okapiClient.getModuleList(vertxContext, okapiParams, CodexInterfaces.CODEX_PACKAGES)
       .compose(modules ->
       okapiClient.getOptionalObjects(vertxContext, okapiHeaders, modules,
         okapiHeaders.get(XOkapiHeaders.URL) + "/" + CodexInterfaces.CODEX_PACKAGES_SOURCES.getValue(),
