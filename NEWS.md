@@ -1,3 +1,12 @@
+## 2.7.0 2019-12-02
+ * MODCXMUX-59 Update RMB to 29.0.1
+ * MODCXMUX-54 Update jackson to 2.10.1 to fix jackson-databind security.
+ * FOLIO-2358  Manage container memory
+ * MODCXMUX-55 Add required permissions
+ * FOLIO-2321  Remove old MD metadata
+ * FOLIO-2256  Enable kube-deploy pipeline
+ * FOLIO-2234  Add LaunchDescriptor settings
+
 ## 2.6.0 2019-06-11
  * MODCXMUX-36 - Implement GET Instance Sources
  * MODCXMUX-37 - Create RAML for GET codex-instances-sources
