@@ -1,8 +1,6 @@
 package org.folio.codex;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -53,6 +51,7 @@ public class Mock implements CodexInstances {
     e.setDate("1991");
     return e;
   }
+
   public Mock(String id) {
     this.id = id;
     logger.info("Mock " + id + " starting");
@@ -107,7 +106,8 @@ public class Mock implements CodexInstances {
   }
 
   @Override
-  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders,
+                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     List<Instance> iInstances = new LinkedList<>(mInstances);
     if (query != null) {
       CQLParser parser = new CQLParser(CQLParser.V1POINT2);
