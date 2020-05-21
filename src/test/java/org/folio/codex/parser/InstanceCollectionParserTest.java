@@ -1,6 +1,7 @@
 package org.folio.codex.parser;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -22,6 +23,7 @@ public class InstanceCollectionParserTest {
     final Multiplexer.CollectionExtension<Instance> instanceCollection =
       InstanceCollectionParser.parseInstanceCollection(stubInstances);
 
+    assertNotNull(instanceCollection);
     assertThat(instanceCollection.getResultInfo().getTotalRecords(), equalTo(2));
   }
 

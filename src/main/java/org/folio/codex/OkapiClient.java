@@ -57,13 +57,13 @@ public class OkapiClient {
     Promise<Optional<T>> promise = Promise.promise();
     WebClient client = WebClient.create(vertxContext.owner());
     logger.info("getObject url=" + url);
-    getUrl(module, url, client, okapiHeaders).setHandler(res -> {
+    getUrl(module, url, client, okapiHeaders).onComplete(res -> {
       client.close();
       if (res.failed()) {
         logger.warn("getObject. getUrl failed " + res.cause());
         promise.handle(Future.failedFuture(res.cause()));
       } else {
-        Multiplexer.MuxCollection mc = res.result();
+        Multiplexer.MuxCollection<?> mc = res.result();
         if (mc.statusCode == 200) {
           try {
             T instance = Json.decodeValue(mc.message.toString(), responseClass);
@@ -110,7 +110,7 @@ public class OkapiClient {
     logger.info("codex.mux getModuleList uri=" + requestURI + " with parameters " + okapiParams);
     HttpRequest<Buffer> request = client.get(okapiParams.getPort(), okapiParams.getHost(),
       requestURI);
-    okapiParams.getHeadersAsMap().forEach(request::putHeader);
+    okapiParams.getHeaders().forEach(request::putHeader);
     Promise<HttpResponse<Buffer>> responsePromise = Promise.promise();
     request
       .send(responsePromise);
@@ -134,7 +134,7 @@ public class OkapiClient {
         }
         return moduleList;
       })
-      .setHandler(result -> {
+      .onComplete(result -> {
         client.close();
         completePromiseWithResult(promise, result);
       });

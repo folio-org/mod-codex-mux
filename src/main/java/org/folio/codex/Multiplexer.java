@@ -102,7 +102,7 @@ public class Multiplexer implements CodexInstances {
     }
     logger.info("getByQuery url=" + url);
     okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders())
-      .setHandler(res -> {
+      .onComplete(res -> {
         client.close();
         if (res.failed()) {
           logger.warn("getByQuery. getUrl failed " + res.cause());
@@ -174,7 +174,7 @@ public class Multiplexer implements CodexInstances {
       T minElement = null;
       int minIndex = -1;
       int index = 0;
-      for (MuxCollection muxCollection : muxCollectionMap.values()) {
+      for (MuxCollection<T> muxCollection : muxCollectionMap.values()) {
         int pointer = pointers[index];
         if (muxCollection.colExt != null) {
           List<T> collection = muxCollection.colExt.getItems();

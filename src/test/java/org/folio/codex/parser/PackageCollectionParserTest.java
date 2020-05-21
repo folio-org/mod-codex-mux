@@ -1,6 +1,7 @@
 package org.folio.codex.parser;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -20,6 +21,7 @@ public class PackageCollectionParserTest {
   public void shouldReturnConvertedCollection() throws IOException, URISyntaxException {
     String stubInstances = readFile("codex/responses/packages/packages-collection.json");
     final Multiplexer.CollectionExtension<Package> packageCollection = PackageCollectionParser.parsePackageCollection(stubInstances);
+    assertNotNull(packageCollection);
     assertThat(packageCollection.getResultInfo().getTotalRecords(), equalTo(2));
   }
 

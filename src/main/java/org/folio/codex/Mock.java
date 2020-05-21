@@ -91,7 +91,7 @@ public class Mock implements CodexInstances {
     } else if (id.equals("mock2")) {
       for (int i = 0; i < 20; i++) {
         Instance e = new Instance();
-        e.setTitle("How to program a computer volume " + Integer.toString(i));
+        e.setTitle("How to program a computer volume " + i);
         e.setPublisher("Penguin");
         Set<Contributor> cs = new LinkedHashSet<>();
         Contributor c = new Contributor();
@@ -108,11 +108,10 @@ public class Mock implements CodexInstances {
 
   @Override
   public void getCodexInstances(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    List<Instance> iInstances = new LinkedList<>();
-    iInstances.addAll(mInstances);
+    List<Instance> iInstances = new LinkedList<>(mInstances);
     if (query != null) {
       CQLParser parser = new CQLParser(CQLParser.V1POINT2);
-      CQLNode top = null;
+      CQLNode top;
       if (query.startsWith("diag")) { // be able to return diagnostic
         Diagnostic d = new Diagnostic();
         d.setCode("unknown index");
@@ -147,8 +146,7 @@ public class Mock implements CodexInstances {
       CQLSortNode sn = CQLInspect.getSort(top);
       if (sn != null) {
         try {
-          Comparator<Instance> comp = InstanceComparator.get(sn);
-          Collections.sort(iInstances, comp);
+          iInstances.sort(InstanceComparator.get(sn));
         } catch (IllegalArgumentException ex) {
           asyncResultHandler.handle(
             Future.succeededFuture(CodexInstances.GetCodexInstancesResponse.respond400WithTextPlain(ex.getMessage())));

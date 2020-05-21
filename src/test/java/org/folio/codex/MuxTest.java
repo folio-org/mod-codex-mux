@@ -88,7 +88,7 @@ public class MuxTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portOkapi,
         result -> {
@@ -111,9 +111,7 @@ public class MuxTest {
       ctx.response().setStatusCode(res.statusCode());
       ctx.response().headers().setAll(res.headers());
       ctx.response().setChunked(true);
-      res.handler(r -> {
-        ctx.response().write(r);
-      });
+      res.handler(r -> ctx.response().write(r));
       res.endHandler(r -> ctx.response().end());
     });
     req.exceptionHandler(r -> {
@@ -150,9 +148,7 @@ public class MuxTest {
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-    vertx.close(context.asyncAssertSuccess(res -> {
-      async.complete();
-    }));
+    vertx.close(context.asyncAssertSuccess(res -> async.complete()));
   }
 
   /**
