@@ -1,3 +1,7 @@
+## 2.8.0 2020-06-09
+ * MODCXMUX-61 Securing APIs by default
+ * MODCXMUX-63 Update to RMB v30.0.2
+
 ## 2.7.0 2019-12-02
  * MODCXMUX-59 Update RMB to 29.0.1
  * MODCXMUX-54 Update jackson to 2.10.1 to fix jackson-databind security.
