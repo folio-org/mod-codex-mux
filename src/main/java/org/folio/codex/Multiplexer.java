@@ -319,7 +319,7 @@ public class Multiplexer implements CodexInstances {
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst();
-        if (!instance.isPresent()) {
+        if (instance.isEmpty()) {
           handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond404WithTextPlain(id)));
         } else {
           handler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(

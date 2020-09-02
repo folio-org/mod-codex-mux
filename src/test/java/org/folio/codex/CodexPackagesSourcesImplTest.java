@@ -25,14 +25,15 @@ import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.http.ContentType;
-import com.jayway.restassured.response.Header;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.http.Header;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,7 +89,7 @@ public class CodexPackagesSourcesImplTest {
   }
 
   @Test
-  public void shouldReturnListOfPackagesSources() throws IOException, URISyntaxException {
+  public void shouldReturnListOfPackagesSources() throws IOException, URISyntaxException, JSONException {
     String stubCodexPackageSource1 = readFile("codex/responses/codex-packages-sources.json");
     String stubCodexPackageSource2 = readFile("codex/responses/codex-packages-sources2.json");
     stubPackagesSources(stubCodexPackageSource1, 200, CODEX_PACKAGES_SOURCES_MODULE_1);
