@@ -24,13 +24,14 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.github.tomakehurst.wiremock.matching.RegexPattern;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Header;
+import io.restassured.RestAssured;
+import io.restassured.http.Header;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,7 +80,8 @@ public class CodexPackagesImplTest {
   }
 
   @Test
-  public void shouldGetPackageByIdWhenOneModuleReturnsPackageAndOtherModuleReturns404() throws IOException, URISyntaxException {
+  public void shouldGetPackageByIdWhenOneModuleReturnsPackageAndOtherModuleReturns404()
+    throws IOException, URISyntaxException, JSONException {
     String stubPackage = readFile("codex/responses/package.json");
     stubPackage(stubPackage, 200, CODEX_MODULE_1);
     stubPackage(null, 404, CODEX_MODULE_2);
@@ -161,7 +163,7 @@ public class CodexPackagesImplTest {
   }
 
   @Test
-  public void shouldReturnPackagesCollection() throws IOException, URISyntaxException {
+  public void shouldReturnPackagesCollection() throws IOException, URISyntaxException, JSONException {
     String stubPackagesCollectionResponseFromTestModule1 = readFile("codex/responses/packages/packages-collection-from-test-module1.json");
     String stubPackagesCollectionResponse= readFile("codex/responses/packages/packages-collection.json");
     stubPackages(stubPackagesCollectionResponseFromTestModule1, 200, CODEX_MODULE_1);

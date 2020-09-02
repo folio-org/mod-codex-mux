@@ -1,9 +1,9 @@
 package org.folio.codex.parser;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import static org.folio.codex.TestHelper.readFile;
 

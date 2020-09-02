@@ -127,7 +127,7 @@ public class CodexPackagesImpl implements CodexPackages {
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst();
-        if (!packageObject.isPresent()) {
+        if (packageObject.isEmpty()) {
           handler.handle(Future.succeededFuture(CodexPackages.GetCodexPackagesByIdResponse.respond404WithTextPlain(id)));
         } else {
           handler.handle(Future.succeededFuture(CodexPackages.GetCodexPackagesByIdResponse.respond200WithApplicationJson(
