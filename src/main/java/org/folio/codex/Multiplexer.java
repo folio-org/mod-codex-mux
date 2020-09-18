@@ -27,8 +27,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.client.WebClient;
-
-import org.folio.common.OkapiParams;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLTermNode;
@@ -37,7 +35,8 @@ import org.folio.codex.comparator.InstanceComparator;
 import org.folio.codex.exception.GetModulesFailException;
 import org.folio.codex.exception.QueryValidationException;
 import org.folio.codex.parser.InstanceCollectionParser;
-import org.folio.okapi.common.CQLUtil;
+import org.folio.common.OkapiParams;
+import org.folio.okapi.common.CqlUtil;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.Instance;
@@ -223,12 +222,12 @@ public class Multiplexer implements CodexInstances {
     if (source == null) {
       return top;
     } else {
-      if (!CQLUtil.eval(top, source, indexTermComparator)) {
+      if (!CqlUtil.eval(top, source, indexTermComparator)) {
         logger.info("Filter out module " + moduleId);
         return null;
       }
       logger.info("Reducing query for module " + moduleId);
-      return CQLUtil.reducer(top, source, indexComparator);
+      return CqlUtil.reducer(top, source, indexComparator);
     }
   }
 
