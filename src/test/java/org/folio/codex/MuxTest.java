@@ -127,9 +127,9 @@ public class MuxTest {
 
     ctx.request().endHandler(x -> {
       if (!"testlib".equals(tenant)) {
-        org.folio.okapi.common.HttpResponse.responseError(ctx, 404, tenant);
+        ctx.response().setStatusCode(404).end(tenant);
       } else if (!"codex".equals(interfaceId)) {
-        org.folio.okapi.common.HttpResponse.responseError(ctx, 404, interfaceId);
+        ctx.response().setStatusCode(404).end(interfaceId);
       } else {
         org.folio.okapi.common.HttpResponse.responseJson(ctx, 200);
         JsonArray a = new JsonArray();
