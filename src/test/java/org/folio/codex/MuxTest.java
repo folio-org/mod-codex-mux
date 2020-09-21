@@ -39,9 +39,7 @@ import org.folio.rest.jaxrs.model.InstanceCollection;
 
 @RunWith(VertxUnitRunner.class)
 public class MuxTest {
-  static {
-    System.setProperty(LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4jLogDelegateFactory");
-  }
+  
 
   private final int portOkapi = 9030;
   private final int portCodex = 9031;
