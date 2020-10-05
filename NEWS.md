@@ -1,3 +1,6 @@
+## 2.9.0 2020-10-05
+ * MODCXMUX-64 Migrate to JDK 11 and RMB 31.x
+
 ## 2.8.0 2020-06-09
  * MODCXMUX-61 Securing APIs by default
  * MODCXMUX-63 Update to RMB v30.0.2
