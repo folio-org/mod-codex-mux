@@ -18,9 +18,9 @@
     <ramlfiles_path>${basedir}/ramls/raml-util/ramls/codex</ramlfiles_path>
     <jsonschema_paths>raml-util/schemas,raml-util/schemas/codex</jsonschema_paths>
 
-    <domain-models-runtime.version>31.1.0</domain-models-runtime.version>
+    <domain-models-runtime.version>31.1.2</domain-models-runtime.version>
     <folio-service-tools.version>1.6.0</folio-service-tools.version>
-    <vertx.version>3.9.2</vertx.version>
+    <vertx.version>3.9.3</vertx.version>
     <cql-java.version>1.13</cql-java.version>
     <jackson.version>2.11.2</jackson.version>
 
@@ -419,6 +419,16 @@
               </transformers>
               <artifactSet />
               <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
+              <filters>
+                <!-- this required to fix module logging -->
+                <!-- There are some errors in runtime and logging settings seems reset -->
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>**/Log4j2Plugins.dat</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
