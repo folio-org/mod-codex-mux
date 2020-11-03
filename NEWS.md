@@ -1,3 +1,6 @@
+## 2.9.2 2020-11-03
+ * Update RMB to v31.1.5 and Vertx to 3.9.4
+
 ## 2.9.1 2020-10-23
  * Fix logging issue
  * Update RMB to v31.1.2 and Vertx to 3.9.3
