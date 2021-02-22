@@ -2,8 +2,8 @@ package org.folio.codex;
 
 import static org.folio.codex.ResultInformation.analyzeResult;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -16,7 +16,6 @@ import java.util.function.Function;
 import javax.ws.rs.core.Response;
 
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -24,9 +23,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLTermNode;
@@ -37,6 +36,7 @@ import org.folio.codex.exception.QueryValidationException;
 import org.folio.codex.parser.InstanceCollectionParser;
 import org.folio.common.OkapiParams;
 import org.folio.okapi.common.CqlUtil;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.Instance;
@@ -78,9 +78,9 @@ public class Multiplexer implements CodexInstances {
     }
   }
 
-  private static Logger logger = LoggerFactory.getLogger("codex.mux");
+  private static final Logger logger = LogManager.getLogger("codex.mux");
 
-  private OkapiClient okapiClient = new OkapiClient();
+  private final OkapiClient okapiClient = new OkapiClient();
 
   @SuppressWarnings({"squid:S00107"})
   private <T> void getByQuery(String module, MergeRequest<T> mergeRequest, String query, int offset, int limit,
@@ -91,15 +91,10 @@ public class Multiplexer implements CodexInstances {
 
     String url = mergeRequest.getHeaders().get(XOkapiHeaders.URL) + codexInterface.getQueryPath()
     + "offset=" + offset + "&limit=" + limit;
-    try {
-      if (query != null) {
-        url += "&query=" + URLEncoder.encode(query, "UTF-8");
-      }
-    } catch (UnsupportedEncodingException ex) {
-      handler.handle(Future.failedFuture(ex.getMessage()));
-      return;
+    if (query != null) {
+      url += "&query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
     }
-    logger.info("getByQuery url=" + url);
+    logger.info("getByQuery url={}", url);
     okapiClient.<T>getUrl(module, url, client, mergeRequest.getHeaders())
       .onComplete(res -> {
         client.close();
@@ -142,7 +137,7 @@ public class Multiplexer implements CodexInstances {
                                                       MergeRequest<T> mergeRequest, CodexInterfaces codexInterface,
                                                       Function<String, CollectionExtension<T>> parser) {
 
-    List<Future> futures = new LinkedList<>();
+    List<Future<Void>> futures = new LinkedList<>();
     for (String module : modules) {
       final CQLNode cqlNode = cqlParameters.getCqlNode();
       if (cqlNode == null) {
@@ -158,7 +153,7 @@ public class Multiplexer implements CodexInstances {
         }
       }
     }
-    return CompositeFuture.all(futures)
+    return GenericCompositeFuture.all(futures)
       .map( o ->  mergeSet2(mergeRequest, cqlParameters.getComparator()));
   }
 
@@ -223,10 +218,10 @@ public class Multiplexer implements CodexInstances {
       return top;
     } else {
       if (!CqlUtil.eval(top, source, indexTermComparator)) {
-        logger.info("Filter out module " + moduleId);
+        logger.info("Filter out module {}", moduleId);
         return null;
       }
-      logger.info("Reducing query for module " + moduleId);
+      logger.info("Reducing query for module {}", moduleId);
       return CqlUtil.reducer(top, source, indexComparator);
     }
   }

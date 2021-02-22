@@ -14,19 +14,20 @@ import io.restassured.http.Header;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.WebClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,8 +44,8 @@ public class MuxTest {
 
   private final int portOkapi = 9030;
   private final int portCodex = 9031;
-  private final Logger logger = LoggerFactory.getLogger("codex.mux");
-  private Set<String> enabledModules = new HashSet<>();
+  private final Logger logger = LogManager.getLogger("codex.mux");
+  private final Set<String> enabledModules = new HashSet<>();
 
   private final Header tenantHeader = new Header("X-Okapi-Tenant", "testlib");
   private final Header urlHeader = new Header("X-Okapi-Url", "http://localhost:" + portOkapi);
@@ -99,26 +100,26 @@ public class MuxTest {
   }
 
   private void handlerProxy(RoutingContext ctx) {
-    HttpClient client = vertx.createHttpClient();
+    WebClient webClient = WebClient.create(vertx);
+
     String url = "http://localhost:" + portCodex + ctx.request().path();
     if (ctx.request().query() != null) {
       url += "?" + ctx.request().query();
     }
-    logger.info("RELAY " + ctx.request().absoluteURI() + " -> " + url);
-    HttpClientRequest req = client.getAbs(url, res -> {
+    logger.info("RELAY {} -> {}", ctx.request().absoluteURI(), url);
+
+    HttpRequest<Buffer> req = webClient.getAbs(url);
+
+    req.putHeaders(ctx.request().headers());
+
+    req.send().onSuccess(res -> {
       ctx.response().setStatusCode(res.statusCode());
       ctx.response().headers().setAll(res.headers());
-      ctx.response().setChunked(true);
-      res.handler(r -> ctx.response().write(r));
-      res.endHandler(r -> ctx.response().end());
-    });
-    req.exceptionHandler(r -> {
+      ctx.response().end(res.body());
+    }).onFailure(t -> {
       ctx.response().setStatusCode(500);
-      ctx.response().end(r.getMessage());
+      ctx.response().end(t.getMessage());
     });
-    req.headers().setAll(ctx.request().headers());
-    req.setChunked(true);
-    req.end();
   }
 
   private void handlerMiniOkapi(RoutingContext ctx) {

@@ -13,8 +13,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.folio.codex.CQLParameters;
 import org.folio.codex.CodexInterfaces;
@@ -34,7 +34,7 @@ import org.folio.rest.jaxrs.resource.CodexPackages;
 
 public class CodexPackagesImpl implements CodexPackages {
 
-  private static Logger logger = LoggerFactory.getLogger(CodexPackagesImpl.class);
+  private static Logger logger = LogManager.getLogger(CodexPackagesImpl.class);
   private OkapiClient okapiClient = new OkapiClient();
   private Multiplexer multiplexer = new Multiplexer();
 

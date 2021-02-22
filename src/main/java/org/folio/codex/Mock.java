@@ -14,8 +14,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.z3950.zing.cql.CQLNode;
 import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
@@ -32,7 +32,7 @@ import org.folio.rest.jaxrs.resource.CodexInstances;
 @java.lang.SuppressWarnings({"squid:S1192", "squid:S1199"})
 public class Mock implements CodexInstances {
 
-  private static Logger logger = LoggerFactory.getLogger("codex.mock");
+  private static Logger logger = LogManager.getLogger("codex.mock");
 
   List<Instance> mInstances = new LinkedList<>();
 
@@ -54,7 +54,7 @@ public class Mock implements CodexInstances {
 
   public Mock(String id) {
     this.id = id;
-    logger.info("Mock " + id + " starting");
+    logger.info("Mock {} starting", id);
     if (id.equals("mock1")) {
       {
         Instance e = createHowToProgramAComputer();
@@ -172,7 +172,7 @@ public class Mock implements CodexInstances {
 
   @Override
   public void getCodexInstancesById(String id, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    logger.info("codex.mock getCodexInstancesById " + id);
+    logger.info("codex.mock getCodexInstancesById {}", id);
     for (Instance e : mInstances) {
       if (e.getId() != null && e.getId().equals(id)) {
         asyncResultHandler.handle(Future.succeededFuture(CodexInstances.GetCodexInstancesByIdResponse.respond200WithApplicationJson(e)));

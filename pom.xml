@@ -18,17 +18,17 @@
     <ramlfiles_path>${basedir}/ramls/raml-util/ramls/codex</ramlfiles_path>
     <jsonschema_paths>raml-util/schemas,raml-util/schemas/codex</jsonschema_paths>
 
-    <domain-models-runtime.version>31.1.5</domain-models-runtime.version>
-    <folio-service-tools.version>1.6.0</folio-service-tools.version>
-    <vertx.version>3.9.4</vertx.version>
+    <domain-models-runtime.version>32.1.0</domain-models-runtime.version>
+    <folio-service-tools.version>1.6.1</folio-service-tools.version>
+    <vertx.version>4.0.0</vertx.version>
     <cql-java.version>1.13</cql-java.version>
-    <jackson.version>2.11.2</jackson.version>
+    <jackson.version>2.12.1</jackson.version>
 
-    <junit.version>4.13</junit.version>
-    <wiremock.version>2.27.1</wiremock.version>
+    <junit.version>4.13.2</junit.version>
+    <wiremock.version>2.27.2</wiremock.version>
     <jsonassert.version>1.5.0</jsonassert.version>
     <jopt-simple.version>5.0.4</jopt-simple.version>
-    <rest.assured.version>4.3.0</rest.assured.version>
+    <rest.assured.version>4.3.3</rest.assured.version>
     <aspectj.version>1.9.6</aspectj.version>
   </properties>
 
@@ -414,6 +414,7 @@
                   <manifestEntries>
                     <Main-Class>org.folio.rest.RestLauncher</Main-Class>
                     <Main-Verticle>org.folio.rest.RestVerticle</Main-Verticle>
+                    <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>
               </transformers>

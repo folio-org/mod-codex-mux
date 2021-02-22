@@ -7,13 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.folio.codex.exception.GetModulesFailException;
-import org.folio.common.OkapiParams;
-import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.util.FutureUtils;
-
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -22,14 +16,20 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.folio.codex.exception.GetModulesFailException;
+import org.folio.common.OkapiParams;
+import org.folio.okapi.common.GenericCompositeFuture;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.util.FutureUtils;
 
 public class OkapiClient {
-  private static Logger logger = LoggerFactory.getLogger(OkapiClient.class);
+  private static final Logger logger = LogManager.getLogger(OkapiClient.class);
 
   /**
    * Sends a request to each module from modules list, if request is successful then returned object is parsed as
@@ -48,7 +48,7 @@ public class OkapiClient {
         url, responseClass);
       futures.add(future);
     }
-    return CompositeFuture.all(new ArrayList<>(futures))
+    return GenericCompositeFuture.all(new ArrayList<>(futures))
       .map(compositeFuture -> futures.stream().map(Future::result));
   }
 
@@ -56,7 +56,7 @@ public class OkapiClient {
                                             String url, Class<T> responseClass) {
     Promise<Optional<T>> promise = Promise.promise();
     WebClient client = WebClient.create(vertxContext.owner());
-    logger.info("getObject url=" + url);
+    logger.info("getObject url={}", url);
     getUrl(module, url, client, okapiHeaders).onComplete(res -> {
       client.close();
       if (res.failed()) {
@@ -107,7 +107,7 @@ public class OkapiClient {
                                             final CodexInterfaces supportedInterface) {
     WebClient client = WebClient.create(vertxContext.owner());
     String requestURI = "/_/proxy/tenants/" + okapiParams.getTenant() + "/interfaces/" + supportedInterface.getValue();
-    logger.info("codex.mux getModuleList uri=" + requestURI + " with parameters " + okapiParams);
+    logger.info("codex.mux getModuleList uri={} with parameters {}", requestURI, okapiParams);
     HttpRequest<Buffer> request = client.get(okapiParams.getPort(), okapiParams.getHost(),
       requestURI);
     okapiParams.getHeaders().forEach(request::putHeader);
@@ -122,7 +122,7 @@ public class OkapiClient {
           throw new GetModulesFailException("Get " + requestURI + " with parameters " + okapiParams + " returned status " + response.statusCode());
         }
         Buffer buffer = response.body() != null ? response.body() : Buffer.buffer();
-        logger.info("codex.mux getModuleList got " + buffer.toString());
+        logger.info("codex.mux getModuleList got {}", buffer);
         List<String> moduleList = new LinkedList<>();
         JsonArray moduleArray = readJsonArray(buffer);
         for (int i = 0; i < moduleArray.size(); i++) {
