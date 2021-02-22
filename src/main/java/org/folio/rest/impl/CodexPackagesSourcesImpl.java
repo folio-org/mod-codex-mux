@@ -11,8 +11,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.folio.codex.CodexInterfaces;
 import org.folio.codex.OkapiClient;
@@ -25,7 +25,7 @@ import org.folio.rest.jaxrs.resource.CodexPackagesSources;
 
 public class CodexPackagesSourcesImpl implements CodexPackagesSources {
 
-  private static Logger logger = LoggerFactory.getLogger(CodexPackagesSourcesImpl.class);
+  private static Logger logger = LogManager.getLogger(CodexPackagesSourcesImpl.class);
   @Override
   public void getCodexPackagesSources(String lang, Map<String, String> okapiHeaders,
                                       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
