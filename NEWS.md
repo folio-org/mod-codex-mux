@@ -1,3 +1,6 @@
+## 2.9.3 2021-03-01
+ * MODCXMUX-73 Upgrade mod-codex-mux to RMB 32.x and Vert.x 4
+
 ## 2.9.2 2020-11-03
  * Update RMB to v31.1.5 and Vertx to 3.9.4
 
