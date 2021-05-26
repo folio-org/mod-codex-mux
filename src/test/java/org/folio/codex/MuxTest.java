@@ -213,7 +213,7 @@ public class MuxTest {
       .get("/codex-instances2")
       .then()
       .log().ifValidationFails()
-      .statusCode(400); // would have expected 404 for RMB
+      .statusCode(404); // would have expected 404 for RMB
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock1")
@@ -370,7 +370,7 @@ public class MuxTest {
       .get("/codex-instances2")
       .then()
       .log().ifValidationFails()
-      .statusCode(400); // would have expected 404 for RMB
+      .statusCode(404); // would have expected 404 for RMB
 
     r = RestAssured.given()
       .header("X-Okapi-Module-ID", "mock2")

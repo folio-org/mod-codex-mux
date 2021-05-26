@@ -2,7 +2,7 @@ package org.folio.codex.comparator;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
+import static org.hamcrest.collection.ArrayMatching.arrayContaining;
 import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
