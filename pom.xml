@@ -18,9 +18,9 @@
     <ramlfiles_path>${basedir}/ramls/raml-util/ramls/codex</ramlfiles_path>
     <jsonschema_paths>raml-util/schemas,raml-util/schemas/codex</jsonschema_paths>
 
-    <domain-models-runtime.version>32.1.0</domain-models-runtime.version>
-    <folio-service-tools.version>1.6.1</folio-service-tools.version>
-    <vertx.version>4.0.0</vertx.version>
+    <domain-models-runtime.version>33.0.0</domain-models-runtime.version>
+    <folio-service-tools.version>1.6.2-SNAPSHOT</folio-service-tools.version>
+    <vertx.version>4.1.0.CR1</vertx.version>
     <cql-java.version>1.13</cql-java.version>
     <jackson.version>2.12.1</jackson.version>
 
@@ -44,6 +44,14 @@
       <url>https://maven.indexdata.com/</url>
     </repository>
   </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <distributionManagement>
     <repository>
@@ -212,6 +220,24 @@
       </plugin>
 
       <plugin>
+        <groupId>org.folio</groupId>
+        <artifactId>domain-models-maven-plugin</artifactId>
+        <version>${domain-models-runtime.version}</version>
+        <executions>
+          <execution>
+            <id>generate_interfaces</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <ramlDirs>${ramlfiles_path}</ramlDirs>
+              <schemaPaths>${jsonschema_paths}</schemaPaths>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.0.0</version>
@@ -231,32 +257,6 @@
             <goals>
               <goal>exec</goal>
             </goals>
-          </execution>
-          <execution>
-            <id>generate_interfaces</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <configuration>
-              <mainClass>org.folio.rest.tools.GenerateRunner</mainClass>
-              <!-- <executable>java</executable> -->
-              <cleanupDaemonThreads>false</cleanupDaemonThreads>
-              <systemProperties>
-                <systemProperty>
-                  <key>project.basedir</key>
-                  <value>${basedir}</value>
-                </systemProperty>
-                <systemProperty>
-                  <key>raml_files</key>
-                  <value>${ramlfiles_path}</value>
-                </systemProperty>
-                <systemProperty>
-                  <key>schema_paths</key>
-                  <value>${jsonschema_paths}</value>
-                </systemProperty>
-              </systemProperties>
-            </configuration>
           </execution>
         </executions>
       </plugin>
