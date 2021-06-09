@@ -19,7 +19,7 @@
     <jsonschema_paths>raml-util/schemas,raml-util/schemas/codex</jsonschema_paths>
 
     <domain-models-runtime.version>33.0.0</domain-models-runtime.version>
-    <folio-service-tools.version>1.6.2-SNAPSHOT</folio-service-tools.version>
+    <folio-service-tools.version>1.7.0</folio-service-tools.version>
     <vertx.version>4.1.0.CR1</vertx.version>
     <cql-java.version>1.13</cql-java.version>
     <jackson.version>2.12.1</jackson.version>
