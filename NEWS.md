@@ -1,3 +1,6 @@
+## 2.11.0 2021-06-09
+* MODCXMUX-77 Upgrade mod-codex-mux to RMB 33 and Vert.x 4.1.0.CR1
+
 ## 2.10.0 2021-03-01
  * MODCXMUX-73 Upgrade mod-codex-mux to RMB 32.x and Vert.x 4
 
