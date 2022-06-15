@@ -1,3 +1,6 @@
+## 2.11.2-SNAPSHOT xxxx-xx-xx
+* MODCXMUX-88 Upgrade mod-codex-mux to RMB 34.0.0 and Vert.x 4.3.1
+
 ## 2.11.1 2021-12-16
 * MODCXMUX-79 Log4j vulnerability verification and correction
 
