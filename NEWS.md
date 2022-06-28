@@ -1,4 +1,4 @@
-## 2.11.2 2022-06-28
+## 2.12.0 2022-06-28
 * MODCXMUX-85 Upgrade deps fixing DoS and HTTP Request Smuggling
 * MODCXMUX-88 Upgrade mod-codex-mux to RMB 34.0.0 and Vert.x 4.3.1
 
