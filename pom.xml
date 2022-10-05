@@ -20,13 +20,13 @@
 
     <domain-models-runtime.version>35.0.0</domain-models-runtime.version>
     <folio-service-tools.version>1.10.0-SNAPSHOT</folio-service-tools.version>
-    <vertx.version>4.3.3</vertx.version>
+    <vertx.version>4.3.4</vertx.version>
     <cql-java.version>1.13</cql-java.version>
 
     <!-- Test dependencies versions-->
     <junit.version>4.13.2</junit.version>
     <wiremock.version>2.27.2</wiremock.version>
-    <jsonassert.version>1.5.0</jsonassert.version>
+    <jsonassert.version>1.5.1</jsonassert.version>
     <jopt-simple.version>5.0.4</jopt-simple.version>
     <rest.assured.version>5.2.0</rest.assured.version>
     <aspectj.version>1.9.9.1</aspectj.version>
